@@ -9,7 +9,7 @@ from TGYRO flux-matched profiles
 from portals.gacode_tools 	import TGLFmodule
 
 __all__ = [
-    'calc_imp_DV',
+    'calc_imp_turbDV',
     ]
 
 ############################################
@@ -18,7 +18,7 @@ __all__ = [
 #
 ############################################
 
-def calc_imp_DV(
+def calc_imp_turbDV(
     # File management
     fgacode = None,
     folder = None,
