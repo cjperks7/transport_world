@@ -14,6 +14,8 @@ from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 from transport_world.make_gacode import read_tokamak as rTok
 
+plt.rcParams.update({'font.size': 16})
+
 __all__ = [
     'get_fits',
 ]

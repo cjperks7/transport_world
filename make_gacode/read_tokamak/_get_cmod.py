@@ -20,6 +20,8 @@ import numpy as np
 import MDSplus
 import matplotlib.pyplot as plt
 
+plt.rcParams.update({'font.size': 16})
+
 __all__ = [
     'get_cmod',
     'plt_cmod',

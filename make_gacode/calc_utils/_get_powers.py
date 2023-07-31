@@ -18,6 +18,8 @@ from . import _get_sigv as _sv
 import math
 from scipy.integrate import cumtrapz
 
+plt.rcParams.update({'font.size': 16})
+
 __all__ = [
     'get_powers',
     ]

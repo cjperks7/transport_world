@@ -12,6 +12,8 @@ import numpy as np
 import scipy.constants as cnt
 import matplotlib.pyplot as plt
 
+plt.rcParams.update({'font.size': 16})
+
 __all__ = [
     'get_ions',
 ]
