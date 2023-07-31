@@ -25,13 +25,18 @@ __all__ = [
 ##########################################################
 
 def get_geq(
-    dout = None,
     path_input = None,
     path_gfile = None,
     plt_all = None,
     ):
+
+    dout = {}
+    dout['paths'] = {}
+    dout['paths']['input'] = path_input
     dout['paths']['gfile'] = path_gfile
 
+    # sq. norm. tor. flux basis
+    dout['rhot'] = np.linspace(0,1,101)
 
     # Output data from gfile
     gfile = omfit_eqdsk.OMFITgeqdsk(path_input+path_gfile)
@@ -89,7 +94,7 @@ def get_geq(
     dout['vol_m3'] = interp1d(sq_phin_g, vol_g)(dout['rhot'])
     dout['Bt_T'] = interp1d(sq_phin_g, Bt_g)(dout['rhot'])
 
-    dout['rhop'] = np.sqrt(dout['polflux']/dout['polflux'][-1])
+    dout['rhop'] = np.sqrt(dout['polflux_Wb/rad']/dout['polflux_Wb/rad'][-1])
 
     # Store scalar value
     dout['torfluxa_Wb/rad'] = "{:1.7E}".format(torfluxa_g)
@@ -101,5 +106,7 @@ def get_geq(
     if plt_all:
         g = GEQmodule.PORTALSgeqdsk(path_input+path_gfile)
         g.plot()
+
+        plt.show()
 
     return dout

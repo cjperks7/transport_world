@@ -53,17 +53,17 @@ def get_ions(
         print('NOT IMPLEMENTED YET')
 
     # Calculates the total pressure and Zeff
-    dout['ptot'] = dout['ne_19m3'] * dout['Te_keV'] # dim(rhot,)
+    dout['ptot_Pa'] = dout['ne_19m3'] * dout['Te_keV'] # dim(rhot,)
     dout['Zeff'] = {}
     dout['Zeff']['prof'] = 0
     for ion in list(filter(None,dout['ions']['name'].split(' '))):
-        dout['ptot'] += dout['ions'][ion]['ni_tot_19m3'] * dout['Ti_keV'] # dim(rhot,)
+        dout['ptot_Pa'] += dout['ions'][ion]['ni_tot_19m3'] * dout['Ti_keV'] # dim(rhot,)
         dout['Zeff']['prof'] += (
             dout['ions'][ion]['ni_tot_19m3'] /dout['ne_19m3'] 
             * dout['ions'][ion]['Z']**2 
             ) # dim(rhot,)
-    dout['Zeff']['avg'] = np.trapz(dout['Zeff']['prof'], dout['vol'])/dout['vol'][-1]
-    dout['ptot'] *= 1000*cnt.e*1e19 # [Pa]
+    dout['Zeff']['avg'] = np.trapz(dout['Zeff']['prof'], dout['vol_m3'])/dout['vol_m3'][-1]
+    dout['ptot_Pa'] *= 1000*cnt.e*1e19 # [Pa]
 
     # Rotation modeling
     dout = _get_rot(
@@ -211,7 +211,7 @@ def _plot(
             dout['ions'][ion]['Z']
             * np.trapz(
                 dout['ions'][ion]['ni_tot_19m3']/dout['ne_19m3'],
-                dout['vol'])/dout['vol'][-1]
+                dout['vol_m3'])/dout['vol_m3'][-1]
         )
 
         ax.plot(

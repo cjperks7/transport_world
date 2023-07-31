@@ -155,6 +155,8 @@ def _get_qNA(
         dout['powers'][mom]['tot_Nm'] = 0
         dout['powers'][mom]['prof_N/m2'] = 0*dout['rhot']
 
+    return dout
+
 ##############
 # Function to obtain synchrotron power density, Trubnikov, JETP Lett. 16 (1972) 25
 # ... INPUT:  Te_keV  - vector, [keV], Electron temperature
@@ -181,9 +183,9 @@ def _get_qsync(
     # Converts units of inputs
     Te = dout['Te_keV']*1000 # [eV]
     ne = dout['ne_19m3']*1e13 # [cm^-3]
-    R = float(dout['rcentr'])*100 # [cm]
-    a = dout['rmin'][-1]*100 # [cm]
-    B = abs(float(dout['bcentr']))*1e4 # [G]
+    R = float(dout['rcentr_m'])*100 # [cm]
+    a = dout['rmin_m'][-1]*100 # [cm]
+    B = abs(float(dout['bcentr_T']))*1e4 # [G]
 
     # Calculates aspect ratio
     A = R/a
@@ -206,7 +208,7 @@ def _get_qsync(
     # Printing values
     dout['powers']['sync'] = {}
     if verb == 2:
-        Psync_tot = cumtrapz(qsync, dout['vol'], initial=0.) # [MW], synchrotron radiation power
+        Psync_tot = cumtrapz(qsync, dout['vol_m3'], initial=0.) # [MW], synchrotron radiation power
         print('Psync= {:1.2f} MW\n'.format(Psync_tot[-1]))
         dout['powers']['sync']['tot_MW'] = Psync_tot[-1]
 
@@ -278,8 +280,8 @@ def _get_qrad(
     dout['powers']['line'] = {}
     dout['powers']['rad'] = {}
     if verb == 2:
-        Pcont_tot = cumtrapz(qcont, dout['vol'], initial=0.) # [MW], continuum radiation power
-        Pline_tot = cumtrapz(qline, dout['vol'], initial=0.) # [MW], line radiation power
+        Pcont_tot = cumtrapz(qcont, dout['vol_m3'], initial=0.) # [MW], continuum radiation power
+        Pline_tot = cumtrapz(qline, dout['vol_m3'], initial=0.) # [MW], line radiation power
         print('Pcont= {:1.2f} MW\n'.format(Pcont_tot[-1]))
         print('Pline= {:1.2f} MW\n'.format(Pline_tot[-1]))
         dout['powers']['cont']['tot_MW'] = Pcont_tot[-1]
@@ -317,11 +319,11 @@ def _get_qohm(
     # Values
     Te = dout['Te_keV'] # [keV]
     ne = dout['ne_19m3'] # [1e19 m^-3]
-    R = float(dout['rcentr']) # [m]
-    a = dout['rmin'][-1] # [m]
+    R = float(dout['rcentr_m']) # [m]
+    a = dout['rmin_m'][-1] # [m]
     Zeff = dout['Zeff']['prof']
-    johm = dout['johm'] # [MA/m^2]
-    jbstor = dout['jbstor'] # [MA/m^2]
+    johm = dout['johm_MA/m2'] # [MA/m^2]
+    jbstor = dout['jbstor_MA/m2'] # [MA/m^2]
 
     # Calculates neoclassical resistivity correction factor
     gamma_R = (1 - 1.95*np.sqrt(a/R) + 0.95*a/R)**-1
@@ -346,7 +348,7 @@ def _get_qohm(
     # Printing values
     dout['powers']['ohm'] = {}
     if verb == 2:
-        Pohm_tot = cumtrapz(qohm, dout['vol'], initial=0.) # [MW], ohmic power
+        Pohm_tot = cumtrapz(qohm, dout['vol_m3'], initial=0.) # [MW], ohmic power
         print('Pohm= {:1.2f} MW\n'.format(Pohm_tot[-1]))
         dout['powers']['ohm']['tot_MW'] = Pohm_tot[-1]
 
@@ -378,7 +380,7 @@ def _get_qrf(
         dr = 0.1 # [m]
 
         # Calculates \sigma in r/a-space
-        sigma = dr/2/(dout['rmin'][-1]) #[norm]
+        sigma = dr/2/(dout['rmin_m'][-1]) #[norm]
 
         # Sets the center (\mu) of the gaussian in r/a-space
         mu = 0.7 # [norm]
@@ -387,7 +389,7 @@ def _get_qrf(
         qrfe = np.exp(-((dout['rhot']-mu)/(sigma))**2)
 
         #Normalizes the shape function
-        qrfe = Prf_in*qrfe/(np.trapz(qrfe, dout['vol'])) # [MW/m^3]
+        qrfe = Prf_in*qrfe/(np.trapz(qrfe, dout['vol_m3'])) # [MW/m^3]
         qrfe[qrfe<1e-10] = 0
 
     else:
@@ -422,7 +424,7 @@ def _get_qrf(
     dout['powers']['rfe'] = {}
     dout['powers']['rfi'] = {}
     if verb == 2:
-        Prfe_tot = cumtrapz(qrfe, dout['vol'], initial=0.) # [MW], rf total power
+        Prfe_tot = cumtrapz(qrfe, dout['vol_m3'], initial=0.) # [MW], rf total power
         print('Prfe= {:1.2f} MW\n'.format(Prfe_tot[-1]))
         dout['powers']['rf']['tot_MW'] = Prfe_tot[-1]
         dout['powers']['rfe']['tot_MW'] = Prfe_tot[-1]
@@ -491,7 +493,7 @@ def _get_qfus(
     dout['powers']['alpi'] = {}
     dout['powers']['alpe'] = {}
     if verb == 2:
-        Pfus_tot = cumtrapz(qfus, dout['vol'], initial=0.) # [MW], fusion power
+        Pfus_tot = cumtrapz(qfus, dout['vol_m3'], initial=0.) # [MW], fusion power
         print('Pfus= {:1.2f} MW\n'.format(Pfus_tot[-1]))
         dout['powers']['fus']['tot_MW'] = Pfus_tot[-1]
 

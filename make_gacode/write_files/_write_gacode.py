@@ -24,7 +24,7 @@ def write_ga(
     ):
 
     # Opens an ASCII file to write in
-    f = open(dout['paths']['input']+'/input_t'+str(dout['t0'])+'s.gacode', 'w')
+    f = open(dout['paths']['input']+'/input_t'+str(dout['t0_s'])+'s.gacode', 'w')
 
     # Header
     f.write("# \n")
@@ -70,19 +70,19 @@ def write_ga(
 
     # Toroidal flux at the edge divided by 2pi
     f.write("# torfluxa | Wb/radian\n")
-    f.write(dout['torfluxa'] + "\n") 
+    f.write(dout['torfluxa_Wb/rad'] + "\n") 
 
     # Radial location of the plasma center
     f.write("# rcentr | m\n")
-    f.write(dout['rcentr'] + "\n")
+    f.write(dout['rcentr_m'] + "\n")
 
     # B-field on axis
     f.write("# bcentr | T\n")
-    f.write(dout['bcentr'] + "\n")
+    f.write(dout['bcentr_T'] + "\n")
 
     # Plasma current
     f.write("# current | MA\n")
-    f.write(dout['current'] + "\n")
+    f.write(dout['current_MA'] + "\n")
 
     # Radial flux coordinate, sq. tor. flux
     f.write("# rho | -\n")
@@ -98,7 +98,7 @@ def write_ga(
     for ii in np.arange(int(dout['nexp'])):
         f.write(
             str(ii+1).rjust(3, ' ') 
-            + "{:1.7E}".format(dout['rmin'][ii]).rjust(15, ' ') 
+            + "{:1.7E}".format(dout['rmin_m'][ii]).rjust(15, ' ') 
             + "\n"
             )
 
@@ -107,7 +107,7 @@ def write_ga(
     for ii in np.arange(int(dout['nexp'])):
         f.write(
             str(ii+1).rjust(3, ' ') 
-            + "{:1.7E}".format(dout['polflux'][ii]).rjust(15, ' ') 
+            + "{:1.7E}".format(dout['polflux_Wb/rad'][ii]).rjust(15, ' ') 
             + "\n"
             )
 
@@ -134,7 +134,7 @@ def write_ga(
     for ii in np.arange(int(dout['nexp'])):
         f.write(
             str(ii+1).rjust(3, ' ') 
-            + "{:1.7E}".format(dout['rmaj'][ii]).rjust(15, ' ') 
+            + "{:1.7E}".format(dout['rmaj_m'][ii]).rjust(15, ' ') 
             + "\n"
             )
 
@@ -143,7 +143,7 @@ def write_ga(
     for ii in np.arange(int(dout['nexp'])):
         f.write(
             str(ii+1).rjust(3, ' ') 
-            + "{:1.7E}".format(dout['zmag'][ii]).rjust(15, ' ') 
+            + "{:1.7E}".format(dout['zmag_m'][ii]).rjust(15, ' ') 
             + "\n"
             )
 
@@ -221,7 +221,7 @@ def write_ga(
 
     # Electron density
     f.write("# ne | 10^19/m^3\n")
-    for ii in np.arange(int(dout['nexp1'])):
+    for ii in np.arange(int(dout['nexp'])):
         f.write(
             str(ii+1).rjust(3, ' ') 
             + "{:1.7E}".format(dout['ne_19m3'][ii]).rjust(15, ' ') 
@@ -318,7 +318,7 @@ def write_ga(
     for ii in np.arange(int(dout['nexp'])):
         f.write(
             str(ii+1).rjust(3, ' ') 
-            + "{:1.7E}".format(dout['ptot'][ii]).rjust(15, ' ') 
+            + "{:1.7E}".format(dout['ptot_Pa'][ii]).rjust(15, ' ') 
             + "\n"
             )
 
@@ -327,7 +327,7 @@ def write_ga(
     for ii in np.arange(int(dout['nexp'])):
         f.write(
             str(ii+1).rjust(3, ' ') 
-            + "{:1.7E}".format(dout['johm'][ii]).rjust(15, ' ') 
+            + "{:1.7E}".format(dout['johm_MA/m2'][ii]).rjust(15, ' ') 
             + "\n"
             )
 
@@ -336,7 +336,7 @@ def write_ga(
     for ii in np.arange(int(dout['nexp'])):
         f.write(
             str(ii+1).rjust(3, ' ') 
-            + "{:1.7E}".format(dout['jbs'][ii]).rjust(15, ' ') 
+            + "{:1.7E}".format(dout['jbs_MA/m2'][ii]).rjust(15, ' ') 
             + "\n"
             )
 
@@ -345,7 +345,7 @@ def write_ga(
     for ii in np.arange(int(dout['nexp'])):
         f.write(
             str(ii+1).rjust(3, ' ') 
-            + "{:1.7E}".format(dout['jrf'][ii]).rjust(15, ' ') 
+            + "{:1.7E}".format(dout['jrf_MA/m2'][ii]).rjust(15, ' ') 
             + "\n"
             )
 
@@ -354,7 +354,7 @@ def write_ga(
     for ii in np.arange(int(dout['nexp'])):
         f.write(
             str(ii+1).rjust(3, ' ') 
-            + "{:1.7E}".format(dout['jnb'][ii]).rjust(15, ' ') 
+            + "{:1.7E}".format(dout['jnb_MA/m2'][ii]).rjust(15, ' ') 
             + "\n"
             )
 
@@ -363,7 +363,7 @@ def write_ga(
     for ii in np.arange(int(dout['nexp'])):
         f.write(
             str(ii+1).rjust(3, ' ') 
-            + "{:1.7E}".format(dout['jbstor'][ii]).rjust(15, ' ') 
+            + "{:1.7E}".format(dout['jbstor_MA/m2'][ii]).rjust(15, ' ') 
             + "\n"
             )
 

@@ -125,14 +125,14 @@ def plt_cmod(
         # Plots calculated value
         if quant in dout['powers'].keys():
             ax[int(ii%2), int(np.floor(ii/2))].plot(
-                dout['t0'],
+                dout['t0_s'],
                 dout['powers'][quant]['tot_MW']*1e3, # [MW] - > [kW]
                 'r*',
                 label = 'sim.',
                 )
         elif quant == 'Zeff':
             ax[int(ii%2), int(np.floor(ii/2))].plot(
-                dout['t0'],
+                dout['t0_s'],
                 dout[quant]['avg'],
                 'r*',
                 label = 'sim.',

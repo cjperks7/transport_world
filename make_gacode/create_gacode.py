@@ -40,7 +40,7 @@ dmodel = {
             'con': 1e-3,
         },
         'Mo': {
-            'con': 3e-4,
+            'con': 7e-4,
         },
     },
     'rotation':{
@@ -50,7 +50,7 @@ dmodel = {
 dmodel['ions']['H']['con'] *= dmodel['ions']['D']['con']
 
 # Paths to fitted profiles and gfile
-path_input = '/home/cjperks/transp_runs/CMOD/'+str(shot)
+path_input = '/home/cjperks/2201_Pumpout/CMOD/shots/'+str(shot)
 path_kin = '/prof_'+str(shot)+'.npy'
 #gfile_d = '/g'+str(shot)+'.00999_968'
 path_gfile = '/g'+str(shot)+'.01000'
@@ -62,21 +62,22 @@ path_gfile = '/g'+str(shot)+'.01000'
 #
 #######################################################
 
-# Loads fitted kinetic profiles
-dout = mkga.get_fits(
-    path_input = path_input,
-    path_kin = path_kin,
-    t0 = t0,
-    dt = dt,
-    plt_all = False,
-    )
-
 # Loads magnetic equilibrium
 dout = mkga.get_geq(
-    dout = dout,
     path_input = path_input,
     path_gfile = path_gfile,
     plt_all = False,
+    )
+
+# Loads fitted kinetic profiles
+dout = mkga.get_fits(
+    dout = dout,
+    path_input = path_input,
+    path_kin = path_kin,
+    shot = shot,
+    t0 = t0,
+    dt = dt,
+    plt_all = True,
     )
 
 #######################################################
@@ -97,7 +98,7 @@ dout = mkga.get_ions(
 dout = mkga.get_powers(
     dout=dout,
     verb=2,
-    Prf_in = 1, # [MW]
+    Prf_in = 0.5, # [MW]
     plt_all = True,
     )
 
@@ -122,10 +123,10 @@ dout = mkga.rscl_cmod(
     dout=dout,
     dquants={
         'fus': 0,
-        'rad': 1/8,#3,
-        'ohm': 5,#0.5,
-        'rf': 5,#0.5,
-        'Zeff': 1,
+        'rad': 1.2,
+        'ohm': 0.5,
+        #'rf': 1,
+        #'Zeff': 1,
         },
     replot = True,
     )
@@ -139,3 +140,8 @@ dout = mkga.rscl_cmod(
 
 # Write GACODE file
 mkga.write_ga(dout=dout)
+
+# Plots GACODE file
+mkga.plot_ga(
+    fgacode = dout['paths']['input']+'/input_t'+str(dout['t0_s'])+'s.gacode'
+    )
