@@ -9,6 +9,11 @@ profiles using Aurora
 import aurora
 from scipy.interpolate import interp1d
 from omfit_classes import omfit_eqdsk, omfit_gapy
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+
+plt.rcParams.update({'font.size': 16})
 
 __all__ = [
     'calc_imp_dens',
@@ -23,6 +28,7 @@ __all__ = [
 def calc_imp_dens(
     dmodel = None,
     plt_all = None,
+    plt_cs = None,
     ):
 
     # Reads in magnetic equilibrium and kinetic profiles
@@ -66,11 +72,11 @@ def calc_imp_dens(
     # -------------------
 
     # Source location wrt LCFS
-    nml['source_cm_out_lcfs'] = dmodel['AURORA']['source_cm_out_lcfs']
+    nml['source_cm_out_lcfs'] = dmodel['AURORA']['edge']['source_cm_out_lcfs']
 
     # Recyling
-    nml['recycling_flag'] = dmodel['AURORA']['recycling_flag'] # recycling from divertor
-    nml['wall_recycling'] = dmodel['AURORA']['wall_recycling'] # recycling from limiter
+    nml['recycling_flag'] = dmodel['AURORA']['edge']['recycling_flag'] # recycling from divertor
+    nml['wall_recycling'] = dmodel['AURORA']['edge']['wall_recycling'] # recycling from limiter
 
     # Connection lengths
     nml['clen_divertor'], nml['cln_limiter'] = aurora.grids_utils.estimate_clen(geqdsk)
@@ -126,11 +132,14 @@ def calc_imp_dens(
 
     # run Aurora forward model and plot results
     out = asim.run_aurora(
-        DZ, VZ, 
+        DZ['tot'], VZ['tot'], 
         times_DV=times_DV, 
         nz_init=nz_init, 
-        plot=plt_all
+        plot=False
         )
+
+    # Checks particle conservation
+    asim.check_conservation(plot=plt_all)
 
     # extract densities and particle numbers in each simulation reservoir
     (
@@ -179,12 +188,133 @@ def calc_imp_dens(
     c_imp_avg = np.trapz(c_imp, vol)/vol[-1]
     print('c_imp ={:.3e}'.format(c_imp_avg))
 
+    # Plotting
+    if plt_all:
+        _plot(
+            asim=asim,
+            nz=nz,
+            DZ=DZ,
+            VZ=VZ,
+            plt_cs=plt_cs,
+            )
+
+        
+
+    # Output impurity density profile
+    if 'FACIT' in dmodel['options']:
+        return {
+            'rhop': asim.rhop_grid,
+            'nz': nz, # [1/cm3], dim(rhop, cs, t)
+            'DZ': DZ, # [cm^2/s], dim(rhop, cs)
+            'VZ': VZ, # [cm/s], dim(rhop, cs)
+            'asym': asym,
+            'TSC': TSC,
+            }
+    else:
+        return {
+            'rhop': asim.rhop_grid,
+            'nz': nz, # [1/cm3], dim(rhop, cs, t)
+            'DZ': DZ, # [cm^2/s], dim(rhop, cs)
+            'VZ': VZ, # [cm/s], dim(rhop, cs)
+            }
+
 
 ###########################################
 #
 #           Extra
 #
 ###########################################
+
+def _plot(
+    asim=None,
+    nz=None,
+    DZ=None,
+    VZ=None,
+    plt_cs=None,
+    ):
+
+    # Plots impurity density
+    aurora.slider_plot(
+        asim.rvol_grid, 
+        asim.time_out, 
+        nz.transpose(1,0,2),
+        xlabel=r'$r_V$ [cm]', ylabel='time [s]', zlabel=r'$n_z$ [$cm^{-3}$]',
+        labels=[str(i) for i in np.arange(0,nz.shape[1])],
+        plot_sum=True, x_line=asim.rvol_lcfs
+        )
+
+    # Plots radiation
+    aurora.slider_plot(
+        asim.rhop_grid,
+        asim.time_out, 
+        asim.rad['line_rad'].transpose(1,2,0),
+        xlabel=r'$\rho_p$', ylabel='time [s]', zlabel=r'Total radiation [$MW/m^3$]',
+        labels=[str(i) for i in np.arange(0,nz.shape[1])],
+        plot_sum=True, x_line = 1.0
+        )
+
+    # Plots delta Zeff
+    aurora.slider_plot(
+        asim.rhop_grid,
+        asim.time_out, 
+        asim.delta_Zeff.transpose(1,0,2),
+        xlabel=r'$\rho_p$', ylabel='time [s]', zlabel=r'$\Delta$ $Z_{eff}$',
+        labels=[str(i) for i in np.arange(0,nz.shape[1])],
+        plot_sum=True, x_line = 1.0
+        )
+
+    # Plots diffusion, convection coefficients
+    if plt_cs is None:
+        plt_cs = [cs for cs in np.arange(0,nz.shape[1])]
+
+    fig,ax = plt.subplots(1,3)
+
+    for src in DZ.keys():
+        if src == 'tot':
+            fmt = '-'
+        else:
+            fmt = '--'
+
+        for cs in plt_cs:
+            ax[0].plot(
+                asim.rhop_grid,
+                DZ[src][:,0,cs]/1e4,
+                fmt,
+                label = src+' '+str(cs),
+                )
+
+            ax[1].plot(
+                asim.rhop_grid,
+                VZ[src][:,0,cs]/1e2,
+                fmt,
+                label = src+' '+str(cs),
+                )
+
+            ax[2].plot(
+                asim.rhop_grid,
+                VZ[src][:,0,cs]/DZ[src][:,0,cs]*1e2,
+                fmt,
+                label = src+' '+str(cs),
+                )
+
+    leg = ax[0].legend()
+    leg.set_draggable('on')
+
+    ax[0].set_xlabel(r'$\rho_p$')
+    ax[0].set_ylabel(r'$D_Z$ [$m^2/s$]')
+    ax[0].grid('on')
+    ax[0].set_ylim(0,3)
+
+    ax[1].set_xlabel(r'$\rho_p$')
+    ax[1].set_ylabel(r'$V_Z$ [$m/s$]')
+    ax[1].grid('on')
+    ax[1].set_ylim(-3,3)
+
+    ax[2].set_xlabel(r'$\rho_p$')
+    ax[2].set_ylabel(r'$V_Z/D_Z$ [$1/m$]')
+    ax[2].grid('on')
+    ax[2].set_ylim(-3,3)
+
 
 def _rscl_nz(
     dmodel=None,
@@ -229,10 +359,12 @@ def _get_DV(
     ):
 
     # Initialize D,V profiles
-    DZ = np.zeros(
+    DZ = {}
+    VZ = {}
+    DZ['tot'] = np.zeros(
         (asim.rvol_grid.size, times_DV.size, asim.Z_imp+1)
         )  # [cm2/s], dim(fm_rhop, t, Z)
-    VZ = np.zeros(
+    VZ['tot'] = np.zeros(
         (asim.rvol_grid.size, times_DV.size, asim.Z_imp+1)
         )  # [cm/s], dim(fm_rhop, t, Z)
 
@@ -240,8 +372,8 @@ def _get_DV(
     for opt in dmodel['options']:
         # If user wants to just use flat profiles
         if opt == 'Flat':
-            DZ += dmodel['Flat']['D'] * np.ones(DZ.size)
-            VZ += dmodel['Flat']['V'] * np.ones(DZ.size)
+            DZ_tmp = dmodel['Flat']['D'] * np.ones(DZ['tot'].shape)
+            VZ_tmp = dmodel['Flat']['V'] * np.ones(DZ['tot'].shape)
 
         # If user wants to use TGLF predictions
         elif opt == 'TGLF':
@@ -265,13 +397,13 @@ def _get_DV(
                 )(dout['rhot'])
 
             # Interpolates onto simulation grid
-            DZ += interp1d(
+            DZ_tmp = interp1d(
                 rhop_TGLF,
                 dout['DZ'],
                 bounds_error = false,
                 fill_value = (dout['DZ'][0], dout['DZ'][-1])
                 )(asim.rhop_grid)[:,None,None] # [cm2/s], dim(fm_rhop, t, Z)
-            VZ += interp1d(
+            VZ_tmp = interp1d(
                 rhop_TGLF,
                 dout['VZ'],
                 bounds_error = false,
@@ -288,17 +420,23 @@ def _get_DV(
                 asim = asim,
                 geqdsk = geqdsk,
                 inputgacode = inputgacode,
-                ICRH_option = None,
-                rotation_model = dmodel['FACIT']['rotation_model']
+                ICRH_option = dmodel['FACIT']['ICRH_option'],
+                rotation_model = dmodel['FACIT']['rotation_model'],
                 times_DV = times_DV,
                 nz_init = nz_init,
                 )
 
             # Adds neoclassical transport
-            DZ += dout['DZ']
-            VZ += dout['VZ']
+            DZ_tmp = dout['DZ']
+            VZ_tmp = dout['VZ']
             asym = dout['asym']
             TSC = dout['TSC']
+
+        # Stores
+        DZ['tot'] += DZ_tmp
+        VZ['tot'] += VZ_tmp
+        DZ[opt] = DZ_tmp
+        VZ[opt] = VZ_tmp
 
     if 'FACIT' in dmodel['options']:
         return DZ, VZ, asym, TSC

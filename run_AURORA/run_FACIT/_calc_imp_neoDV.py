@@ -9,6 +9,7 @@ D, V profiles using FACIT within Aurora
 import aurora
 import scipy.constants as cnt
 from scipy.interpolate import griddata
+import numpy as np
 
 __all__ = [
     'calc_imp_neoDV',
@@ -94,7 +95,7 @@ def calc_imp_neoDV(
     Zeff = np.interp(
         rhop,
         rhop_ga,
-        inputgacode['Zeff']
+        inputgacode['z_eff']
         ) # dim(fm_rhop,) 
 
     # Ion Mach number profile
@@ -102,7 +103,7 @@ def calc_imp_neoDV(
         rhop,
         rhop_ga,
         (
-            inputgacode['vtor']
+            inputgacode['vtor_1']
             /np.sqrt(
                 2*cnt.e*inputgacode['Ti_1']*1e3
                 /asim.main_ion_A/cnt.m_p
@@ -276,7 +277,7 @@ def calc_imp_neoDV(
         'VZ': V_z,
         'TSC': TSC,
         'asym': {
-            'hor_asym': hor_asym,
+            'hor_asym': horz_asym,
             'vert_asym': vert_asym,
             'nn': nn,
             'R': RV,

@@ -19,8 +19,8 @@ from transport_world import run_AURORA as rA
 #######################################################
 
 dmodel = {
-    'option': ['TGLF', 'FACIT'],
-    #'option': ['Flat'],
+    'options': ['TGLF', 'FACIT'],
+    #'options': ['Flat'],
     'imp':{
         'sym': 'Ar',
         'cs': 16,
@@ -29,7 +29,7 @@ dmodel = {
     'paths':{
         'fgacode': 'input.gacode.new',
         'geqdsk': 'input.geq',
-        'folder': 'xxx/',
+        'folder': '/xxx/',
         'subfolder': 'xxx',
         },
     'Flat': {
@@ -42,6 +42,7 @@ dmodel = {
         },
     'FACIT': {
         'rotation_model': 2,
+        'ICRH_option': None,
         },
     'AURORA':{
         'device': 'CMOD',
@@ -70,7 +71,8 @@ dmodel = {
 #
 #######################################################
 
-nZ = rA.calc_imp_dens(
+dout = rA.calc_imp_dens(
     dmodel = dmodel,
     plt_all = True,
+    plt_cs = [16,17,18],
     )
