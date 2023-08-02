@@ -30,6 +30,8 @@ def calc_imp_turbDV(
     rhos = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], # sq. tor. flux
     restart = True,     # True = from scratch, False = already have output
     TGLFsettings = 4,   # 1 -> SAT0, 2 -> SAT1, 3 -> SAT1geo, 4 -> SAT2, 5 -> SAT2em
+    # PLotting
+    plt_all = None,
     ):
 
     # Initialize TGLF class at the locations
@@ -52,10 +54,11 @@ def calc_imp_turbDV(
         )
 
     # Plots the TGLF analysis results
-    tglf.plotAnalysis(
-        labels=['analysis1'],
-        analysisType='Z',
-    )
+    if plt_all:
+        tglf.plotAnalysis(
+            labels=['analysis1'],
+            analysisType='Z',
+            )
 
     return {
         'rhot': tglf.rhos, # sq. norm. tor. flux, dim(tglf_rhot,)
