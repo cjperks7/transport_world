@@ -139,7 +139,14 @@ def calc_imp_dens(
         )
 
     # Checks particle conservation
-    asim.check_conservation(plot=plt_all)
+    cons = asim.check_conservation(plot=plt_all)
+    if not plt_all:
+        Ntot = cons["integ_source"][-1]
+        dN = np.trapz(
+            (cons["total"] / Ntot - cons["integ_source"] / Ntot) ** 2, asim.time_out
+        )
+        dN /= np.trapz((cons["integ_source"] / Ntot) ** 2, asim.time_out)
+        print("Particle conservation error %.1f%%" % (np.sqrt(dN) * 100))
 
     # extract densities and particle numbers in each simulation reservoir
     (
@@ -198,24 +205,31 @@ def calc_imp_dens(
             plt_cs=plt_cs,
             )
 
-        
+    # Formats the outputted density profile to conform with gacode
+    nz_ga = interp1d(
+        asim.rhop_grid,
+        nz[:,:,-1],
+        axis=0,
+        )(kp['ne']['rhop']) # [1/cm3], dim(rhop,cs)
 
     # Output impurity density profile
     if 'FACIT' in dmodel['options']:
         return {
-            'rhop': asim.rhop_grid,
-            'nz': nz, # [1/cm3], dim(rhop, cs, t)
-            'DZ': DZ, # [cm^2/s], dim(rhop, cs)
-            'VZ': VZ, # [cm/s], dim(rhop, cs)
-            'asym': asym,
-            'TSC': TSC,
+            'rhop_fm': asim.rhop_grid,
+            'nz_fm': nz, # [1/cm3], dim(rhop, cs, t)
+            'DZ_fm': DZ, # [cm^2/s], dim(rhop, cs)
+            'VZ_fm': VZ, # [cm/s], dim(rhop, cs)
+            'asym_fm': asym,
+            'TSC_fm': TSC,
+            'nz_ga': nz_ga, # [1/cm3], dim(rhop,cs,t)
             }
     else:
         return {
-            'rhop': asim.rhop_grid,
-            'nz': nz, # [1/cm3], dim(rhop, cs, t)
-            'DZ': DZ, # [cm^2/s], dim(rhop, cs)
-            'VZ': VZ, # [cm/s], dim(rhop, cs)
+            'rhop_fm': asim.rhop_grid,
+            'nz_fm': nz, # [1/cm3], dim(rhop, cs, t)
+            'DZ_fm': DZ, # [cm^2/s], dim(rhop, cs)
+            'VZ_fm': VZ, # [cm/s], dim(rhop, cs)
+            'nz_ga': nz_ga, # [1/cm3], dim(rhop,cs,t)
             }
 
 
