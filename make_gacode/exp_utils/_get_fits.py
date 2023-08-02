@@ -160,9 +160,11 @@ def _plot(
         for prof in dkin.keys():
             if prof == 'ne':
                 vals = 'val_1e20m3'
+                err = 'err_1e20m3'
                 num = 0
             else:
                 vals = 'val_keV'
+                err = 'err_keV'
                 if prof == 'Te':
                     num = 1
                 elif prof == 'Ti':
@@ -175,36 +177,28 @@ def _plot(
                     continue
 
                 # Finds time range
-                t_ind = np.where(
-                    (dkin[prof][diag]['t_s'] >=t0-dt) 
-                    & (dkin[prof][diag]['t_s'] <=t0+dt) 
-                    )[0]
+                #t_ind = np.where(
+                #    (dkin[prof][diag]['t_s'] >=t0-dt) 
+                #    & (dkin[prof][diag]['t_s'] <=t0+dt) 
+                #    )[0]
+                t_ind = np.argmin(
+                    abs(
+                        dkin[prof][diag]['t_s'] - t0
+                        )
+                    )
 
                 if diag == 'TCI':
-                    nebar = np.mean(
-                        dkin[prof][diag][vals][t_ind]
-                        )/1e19
-                    nebar_std = np.std(
-                        dkin[prof][diag][vals][t_ind]
-                        )/1e19
+                    nebar = dkin[prof][diag][vals][t_ind]/1e19
 
                     ax[num].plot([0,1], [nebar,nebar], 'g--', label=diag)
 
                 else:
-                    val = np.mean(
-                        dkin[prof][diag][vals][:,t_ind],
-                        axis = 1
-                        )
-                    if 'err_keV' in dkin[prof][diag].keys():
-                        val_std = np.mean(
-                            dkin[prof][diag]['err_keV'][:,t_ind],
-                            axis = 1
-                            )
+                    val = dkin[prof][diag][vals][:,t_ind]
+
+                    if err in dkin[prof][diag].keys():
+                        val_std = dkin[prof][diag][err][:,t_ind]
                     else:
-                        val_std = np.std(
-                            dkin[prof][diag][vals][:,t_ind],
-                            axis = 1
-                            )
+                        val_std = dkin[prof][diag][vals][:,t_ind] * 0.1
 
                     if prof == 'ne':
                         val /= 1e19
@@ -215,20 +209,12 @@ def _plot(
                         diag = dkin[prof][diag]
                         )
 
-                    rhot = np.mean(
-                        rhot_all[:,t_ind],
-                        axis = 1
-                        )
-                    rhot_std = np.std(
-                        rhot_all[:,t_ind],
-                        axis = 1
-                        )
+                    rhot = rhot_all[:,t_ind]
 
                     ax[num].errorbar(
                         rhot, 
                         val, 
                         yerr = val_std,
-                        xerr = rhot_std,
                         fmt='*', label=diag
                         )
 
@@ -236,7 +222,7 @@ def _plot(
     ax[0].set_xlabel(r'$\rho_t$')
     ax[0].set_ylabel(r'$n_e$ [1e19 $m^{-3}$]')
     ax[0].grid('on')
-    ax[0].set_ylim(5,15)
+    ax[0].set_ylim(0,20)
     leg0 = ax[0].legend()
     leg0.set_draggable('on')
 

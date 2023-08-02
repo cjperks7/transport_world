@@ -100,6 +100,9 @@ def _get_ne(
         # Obtains electron density data
         dne['Thomson']['val_1e20m3'] = tree.getNode('\yag_new.results.profiles:ne_rz').data() # [1e20 1/m3], dim(nchan,t)
 
+        # Obtains error
+        dne['Thomson']['err_1e20m3'] = tree.getNode('\yag_new.results.profiles:ne_err').data() # [1e20 1/m3], dim(nchan,t)
+
         # Radial domain
         dne['Thomson']['r_m'] = tree.getNode('\yag_new.results.profiles:r_mid_t').data() # [m], dim(nchan,t)
 
@@ -345,6 +348,9 @@ def _get_Te(
     try:
         # Obtains electron temp data
         dTe['Thomson']['val_keV'] = tree.getNode('\yag_new.results.profiles:te_rz').data() # [keV], dim(nchan,t)
+
+        # Obtains error
+        dTe['Thomson']['err_keV'] = tree.getNode('\yag_new.results.profiles:te_err').data() # [keV], dim(nchan,t)
 
         # Radial domain
         dTe['Thomson']['r_m'] = tree.getNode('\yag_new.results.profiles:r_mid_t').data() # [m], dim(nchan,t)

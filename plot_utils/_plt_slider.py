@@ -32,6 +32,8 @@ def plt_slider(
         i.e., spectra in the shape (rhop, lambda)
                 and I want to slide over rhop
 
+        so whatever you want to slide over is first dimension
+
     '''
 
     # Initializes
