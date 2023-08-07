@@ -25,4 +25,5 @@ ddata = rTok.get_hirexsr(
     tht=tht,
     quants = ['int', 'spectra'],
     plt_all = True,
+    plt_ch = 7,
     )

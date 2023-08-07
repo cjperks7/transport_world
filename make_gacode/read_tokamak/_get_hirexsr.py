@@ -9,6 +9,7 @@ loading spectroscopy data from HIREX SR on C-Mod
 import MDSplus
 import matplotlib.pyplot as plt
 import numpy as np
+import copy
 
 plt.rcParams.update({'font.size': 16})
 
@@ -54,7 +55,7 @@ def get_hirexsr(
 
     # Plotting
     if plt_all:
-        plt_hirexsr(dout=dout, plt_ch=None)
+        plt_hirexsr(dout=dout, plt_ch=plt_ch)
 
     return dout
 
@@ -115,20 +116,25 @@ def plt_hirexsr(
         # Loop over branches
         for bb in dout['spectra'].keys():
             # Determines which channel to plot
+            print(plt_ch)
             if plt_ch is None:
                 # If not selected, plot midplane
                 plt_ch_tmp = np.argmin(
                     abs(dout['spectra'][bb]['pos'][98,:,3])
                     )
             else:
-                plt_ch_tmp = plt_ch.copy()
+                if plt_ch > dout['spectra'][bb]['pos'].shape[1] -1:
+                    plt_ch_tmp = dout['spectra'][bb]['pos'].shape[1] -1 
+                else:
+                    plt_ch_tmp = copy.deepcopy(plt_ch)
+            print(plt_ch_tmp)
 
             plt_slider(
                 xxx=dout['spectra'][bb]['lam_AA'][:,0,plt_ch_tmp],
                 yyy=dout['spectra'][bb]['t_s'],
                 dzzz=dout['spectra'][bb]['avespec'][:,:,plt_ch_tmp].T,
                 xxlabel=r"$\lambda$ [$\AA$]",
-                yylabel="t [s]",
+                yylabel="t [s] (ch="+str(plt_ch_tmp)+")",
                 zzlabel=r"Counts [arb]",
                 plt_sum=False
                 )
