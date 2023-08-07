@@ -50,6 +50,8 @@ def get_cmod(
             'fus',
             'Zeff',
             'Ar_gas',
+            'Te/Ti',
+            'H/D'
         ]
 
     # Initializes output
@@ -93,6 +95,18 @@ def get_cmod(
             dout=dout,
             )
 
+    # Calculates Te/Ti
+    if 'Te/Ti' in quants:
+        dout = _get_TeoTi(
+            dout=dout,
+            )
+
+    # Loads hydrogen-to-deuterium ratio
+    if 'H/D' in quants:
+        dout = _get_HoD(
+            dout=dout,
+            )
+
     return dout
 
 
@@ -111,11 +125,44 @@ def plt_cmod(
 
     # Initializes figure
     fig, ax  = plt.subplots(2, int(np.ceil(nsubs/2)))
+    fig.tight_layout(pad=1.0)
 
     fig.suptitle(dout['shot'])
 
     # Loop over quanity
     for ii, quant in enumerate(dout['exp'].keys()):
+        # Special case if Te/Ti plot
+        if quant == 'Te/Ti':
+            ax[int(ii%2), int(np.floor(ii/2))].plot(
+                dout['rhot'],
+                dout['Te_keV'],
+                label = 'Te'
+                )
+            ax[int(ii%2), int(np.floor(ii/2))].plot(
+                dout['rhot'],
+                dout['Ti_keV'],
+                label = 'Ti'
+                )
+
+            ax[int(ii%2), int(np.floor(ii/2))].set_xlim(
+                [0.7,1]
+                )
+            ax[int(ii%2), int(np.floor(ii/2))].set_ylim(
+                [0,1]
+                )
+
+            ax[int(ii%2), int(np.floor(ii/2))].set_xlabel(
+                r'$\rho_t$'
+                )
+            ax[int(ii%2), int(np.floor(ii/2))].set_ylabel(
+                r'$T_s$ [$keV$]'
+                )
+            leg = ax[int(ii%2), int(np.floor(ii/2))].legend()
+            leg.set_draggable('on')
+            ax[int(ii%2), int(np.floor(ii/2))].grid('on')
+
+            continue
+
         # Loop over diags
         for jj in np.arange(len(dout['exp'][quant]['diags'])):
             ax[int(ii%2), int(np.floor(ii/2))].plot(
@@ -136,6 +183,14 @@ def plt_cmod(
             ax[int(ii%2), int(np.floor(ii/2))].plot(
                 dout['t0_s'],
                 dout[quant]['avg'],
+                'r*',
+                label = 'sim.',
+                )
+
+        elif quant == 'H/(H+D)':
+            ax[int(ii%2), int(np.floor(ii/2))].plot(
+                dout['t0_s'],
+                dout['exp'][quant]['sim'],
                 'r*',
                 label = 'sim.',
                 )
@@ -174,6 +229,15 @@ def rscl_cmod(
             if 'rescale' not in dout['Zeff'].keys():
                 dout['Zeff']['rescale'] = 1
             dout['Zeff']['rescale'] *= dquants[qnt]
+
+        elif qnt == 'Te/Ti':
+            # Rescales
+            dout['Ti_keV'] += dquants[qnt]/1e3
+
+            # Documents
+            if 'Ti_rescale_eV' not in dout.keys():
+                dout['Ti_rescale_eV'] = 0
+            dout['Ti_rescale_eV'] += dquants[qnt]
 
         else:
             dout['powers'][qnt]['tot_MW'] *=dquants[qnt]
@@ -409,5 +473,47 @@ def _get_Ar_gas(
     dout['exp']['Ar_gas']['time'] = [t_gas]
     dout['exp']['Ar_gas']['units'] = ''
     dout['exp']['Ar_gas']['diags'] = ['incaa16']
+
+    return dout
+
+# Loads hydrogen-to-deuterium ratio
+def _get_HoD(
+    dout = None,
+    ):
+
+    # MDSplus tree
+    spec = MDSplus.Tree('spectroscopy', dout['shot'])
+
+    # Loads Ar gas feed data
+    balmer_nd = spec.getNode(r'\spectroscopy::balmer_h_to_d')
+    balmer = balmer_nd.data()
+    t_balmer = balmer_nd.dim_of(0).data()
+
+    # Stores data
+    dout['exp']['H/(H+D)'] = {}
+    dout['exp']['H/(H+D)']['val'] = [balmer/(1+balmer)]
+    dout['exp']['H/(H+D)']['time'] = [t_balmer]
+    dout['exp']['H/(H+D)']['units'] = ''
+    dout['exp']['H/(H+D)']['diags'] = ['balmer']
+
+    # Value used in simulation
+    dout['exp']['H/(H+D)']['sim'] = np.trapz(
+        (
+            dout['ions']['H']['ni_tot_19m3']
+            /(dout['ions']['H']['ni_tot_19m3']
+            +dout['ions']['D']['ni_tot_19m3'])
+            ),
+        dout['vol_m3']
+        )/dout['vol_m3'][-1]
+
+    return dout
+
+# Calculates Te/Ti
+def _get_TeoTi(
+    dout = None,
+    ):
+
+    # Calculates Te/Ti
+    dout['exp']['Te/Ti'] = dout['Te_keV']/dout['Ti_keV'] # dim(rhop,)
 
     return dout

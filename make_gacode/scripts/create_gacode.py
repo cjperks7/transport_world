@@ -26,12 +26,12 @@ t0 = 1.2 # [s]
 dt = 0.05
 
 # Ion concentration modeling
-H2D = 0.3
+H2D = 0.51
 dmodel = {
     'option': 'concentration',
     'ions': {
         'D': {
-            'con': 0.7,
+            'con': 0.6,
         },
         'H': {
             'con': H2D
@@ -77,7 +77,7 @@ dout = mkga.get_fits(
     shot = shot,
     t0 = t0,
     dt = dt,
-    plt_all = True,
+    plt_all = False,
     )
 
 #######################################################
@@ -127,6 +127,7 @@ dout = mkga.rscl_cmod(
         'ohm': 0.5,
         #'rf': 1,
         #'Zeff': 1,
+        #'Te/Ti': -200 # [eV]
         },
     replot = True,
     )
