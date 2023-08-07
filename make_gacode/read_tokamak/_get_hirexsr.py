@@ -116,7 +116,6 @@ def plt_hirexsr(
         # Loop over branches
         for bb in dout['spectra'].keys():
             # Determines which channel to plot
-            print(plt_ch)
             if plt_ch is None:
                 # If not selected, plot midplane
                 plt_ch_tmp = np.argmin(
@@ -127,8 +126,6 @@ def plt_hirexsr(
                     plt_ch_tmp = dout['spectra'][bb]['pos'].shape[1] -1 
                 else:
                     plt_ch_tmp = copy.deepcopy(plt_ch)
-            print(plt_ch_tmp)
-
             plt_slider(
                 xxx=dout['spectra'][bb]['lam_AA'][:,0,plt_ch_tmp],
                 yyy=dout['spectra'][bb]['t_s'],
