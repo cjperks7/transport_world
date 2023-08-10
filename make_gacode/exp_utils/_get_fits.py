@@ -66,7 +66,11 @@ def get_fits(
     # Interpolates onto rho = 0->1
     ne = interp1d(rho_t, ne, axis = 0)(dout['rhot'])
     Te = interp1d(rho_t, Te, axis = 0)(dout['rhot'])
-    Ti = interp1d(rho_t, Ti, axis = 0)(dout['rhot'])
+
+    ### NOTE: I found an error under /home/sciortino/quickfit/CMOD/fetch_data.py
+    # Assumes HIREX's rho = rho_t, but it's actually psin
+    #Ti = interp1d(rho_t, Ti, axis = 0)(dout['rhot'])
+    Ti = interp1d(rho_t, Ti, axis=0)(dout['rhop']**2)
 
     # Takes the average in time
     dout['ne_19m3'] = np.mean(ne, axis=-1)
