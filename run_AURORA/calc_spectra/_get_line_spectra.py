@@ -108,7 +108,7 @@ def get_line_spectra(
 
 #########################################################
 #
-#               Utilities
+#               Calculation
 #
 #########################################################
 
@@ -174,17 +174,119 @@ def _get_line_emis(
         for nn in range(1,6):
             if out[nn] is not None:
                 spec_tmp += out[nn]
+        # Sums of ion, exc, rad rec, diel rec, and cx spectra
 
         # Forward Model total spectrum interpolated on master wavelength domain
-        spec_fm[rho,:] = interp1d(
-            out[0], 
-            spec_tmp,
-            bounds_error = False, fill_value= 0.0
-            )(wave_master) # [1/cm^3/s/AA]; dim(,lambda)
-        # Sums of ion, exc, rad rec, diel rec, and cx spectra
+        spec_fm[rho,:] = _remesh(
+            wave_fm = out[0],
+            spec_fm = spec_tmp,
+            wave_mstr = wave_master,
+            ) # [1/cm^3/s/AA]; dim(,lambda)
 
     # Outputs spectra for this species/charge state
     return spec_fm
+
+
+#########################################################
+#
+#               Utilities
+#
+#########################################################
+
+
+# Remesh simulation energy grid onto global grid
+# NOTE: benchmarked to conserve photons upon energy-integration
+def _remesh(
+    wave_fm=None,       # Model mesh
+    spec_fm=None,       # Model output
+    wave_mstr=None,     # Master mesh
+    ):
+
+    spec_mstr = np.zeros(len(wave_mstr)) # [1/cm^3/s/AA], dim(lambda,)
+
+    # Loop over wavelength
+    for yy in np.arange(len(wave_mstr)):
+        # Calculates the edges of the wavelength mesh
+        if yy == 0:
+            y_max = wave_mstr[yy]
+            y_min = (wave_mstr[yy] + wave_mstr[yy+1])/2
+        elif yy == len(wave_mstr)-1:
+            y_max = (wave_mstr[yy-1] + wave_mstr[yy])/2
+            y_min = wave_mstr[yy]
+        else:
+            y_max = (wave_mstr[yy-1] + wave_mstr[yy])/2
+            y_min = (wave_mstr[yy] + wave_mstr[yy+1])/2
+
+        # Finds data within new bin
+        ind = np.where(
+            (wave_fm >= y_min)
+            & (wave_fm <= y_max) 
+            )[0] # dim(wave_fm,)
+
+        # Interpolates data onto new bin
+        if ind.size == 0:
+            # If extrpolating, fill with zeros
+            if wave_mstr[yy] > np.max(wave_fm) or wave_mstr[yy] < np.min(wave_fm):
+                spec_mstr[yy] = 0.0
+
+            # If interpolating between two points
+            else:
+                ind1 = np.argmin(abs(wave_fm-wave_mstr[yy]))
+
+                if wave_mstr[yy] - wave_fm[ind1] > 0:
+                    spec_mstr[yy] = (
+                        spec_fm[ind1]
+                        + (wave_mstr[yy] - wave_fm[ind1])
+                        * (spec_fm[ind1+1] - spec_fm[ind1])
+                        / (wave_fm[ind1+1] - wave_fm[ind1])
+                        )
+                else:
+                    spec_mstr[yy] = (
+                        spec_fm[ind1]
+                        + (wave_mstr[yy] - wave_fm[ind1])
+                        * (spec_fm[ind1-1] - spec_fm[ind1])
+                        / (wave_fm[ind1-1] - wave_fm[ind1])
+                        )
+
+        
+        else:
+            # Handles edge points of bin
+            if ind[0] == 0:
+                eps_l = 0.0
+            else:
+                m_l = (
+                    (spec_fm[ind[0]-1] - spec_fm[ind[0]])
+                    /(wave_fm[ind[0]-1] - wave_fm[ind[0]])
+                    )
+                b_l = (
+                    spec_fm[ind[0]] - m_l*wave_fm[ind[0]]
+                    )
+                eps_l = m_l*y_min + b_l
+
+            if ind[-1] == len(wave_fm)-1:
+                eps_r = 0.0
+            else:
+                m_r = (
+                    (spec_fm[ind[-1]] - spec_fm[ind[-1]+1])
+                    /(wave_fm[ind[-1]] - wave_fm[ind[-1]+1])
+                    )
+                b_r = (
+                    spec_fm[ind[-1]] - m_r*wave_fm[ind[-1]]
+                    )
+                eps_r = m_r*y_max + b_r
+
+            # Rebins the data while conserving photons
+            eps = np.append(spec_fm[ind], eps_r)
+            eps = np.append(eps_l, eps)
+
+            lamb = np.append(wave_fm[ind], y_max)
+            lamb = np.append(y_min, lamb)
+
+            spec_mstr[yy] = np.trapz(eps,lamb)/(y_max-y_min)
+
+    # Output, [1/cm^3/s/AA], dim(lambda,)
+    return spec_mstr
+
 
 def _get_PEC_loc(
     ion=None,
