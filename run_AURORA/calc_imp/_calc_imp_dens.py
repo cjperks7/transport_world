@@ -68,6 +68,17 @@ def calc_imp_dens(
     nml['device'] = dmodel['AURORA']['device']
 
     # -------------------
+    # SOL modeling
+    # -------------------
+
+    # SOL decay length
+    kp['ne']['fun'] = 'interp'
+
+    kp['Te']['decay'] = dmodel['AURORA']['SOL']['decay']
+    kp['Ti']['decay'] = dmodel['AURORA']['SOL']['decay']
+    kp['ne']['decay'] = dmodel['AURORA']['SOL']['decay']
+
+    # -------------------
     # Edge modeling
     # -------------------
 
