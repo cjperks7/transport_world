@@ -27,7 +27,7 @@ def calc_imp_turbDV(
     cs = 16,
     amu = 40,
     # Simulation settings
-    rhos = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], # sq. tor. flux
+    rhos = list(np.linspace(0.25,0.85,31)), # sq. tor. flux
     restart = True,     # True = from scratch, False = already have output
     TGLFsettings = 4,   # 1 -> SAT0, 2 -> SAT1, 3 -> SAT1geo, 4 -> SAT2, 5 -> SAT2em
     # PLotting

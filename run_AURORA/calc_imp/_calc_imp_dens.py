@@ -34,13 +34,13 @@ def calc_imp_dens(
     # Reads in magnetic equilibrium and kinetic profiles
     geqdsk = omfit_eqdsk.OMFITgeqdsk(
         os.path.join(
-            dmodel['paths']['folder'],
+            dmodel['paths']['in_path'],
             dmodel['paths']['geqdsk']
             )
         )
     inputgacode = omfit_gapy.OMFITgacode(
         os.path.join(
-            dmodel['paths']['folder'],
+            dmodel['paths']['in_path'],
             dmodel['paths']['fgacode'],
             )
         )
@@ -396,14 +396,27 @@ def _get_DV(
 
             # Obtains data
             dout = rT.calc_imp_turbDV(
-                fgacode = dmodel['paths']['fgacode'],
-                folder = dmodel['paths']['folder'],
-                subfolder = dmodel['paths']['subfolders'],
+                fgacode = os.path.join(
+                    dmodel['paths']['in_path'],
+                    dmodel['paths']['fgacode'],
+                    ),
+                folder = os.path.join(
+                    dmodel['paths']['in_path']
+                    dmodel['paths']['out_folder'],
+                    dmodel['paths']['name_sim']
+                    ),
+                subfolder = dmodel['paths']['name_sim'],
                 cs = dmodel['imp']['cs'],
                 amu = dmodel['imp']['amu'],
                 restart = dmodel[opt]['restart'],
                 TGLFsettings = dmodel[opt]['TGLFsettings'],
                 )
+
+            # Smooths TGLF output
+            dout = rT.smooth_DV(
+                ddata=dout,
+                rho_accept = dmodel[opt]['rho_accept']
+            )
 
             rhop_TGLF = interp1d(
                 inputgacode['rho'],
@@ -414,14 +427,14 @@ def _get_DV(
             DZ_tmp = interp1d(
                 rhop_TGLF,
                 dout['DZ'],
-                bounds_error = false,
-                fill_value = (dout['DZ'][0], dout['DZ'][-1])
+                bounds_error = False,
+                fill_value = 0.0,
                 )(asim.rhop_grid)[:,None,None] # [cm2/s], dim(fm_rhop, t, Z)
             VZ_tmp = interp1d(
                 rhop_TGLF,
                 dout['VZ'],
-                bounds_error = false,
-                fill_value = (dout['VZ'][0], dout['VZ'][-1])
+                bounds_error = False,
+                fill_value = 0.0,
                 )(asim.rhop_grid)[:,None,None] # [cm/s], dim(fm_rhop, t, Z)
 
         # If user wants to use FACIT predictions
