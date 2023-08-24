@@ -261,6 +261,7 @@ def _plot(
     # Plots impurity density
     aurora.slider_plot(
         asim.rvol_grid, 
+        #asim.rhop_grid,
         asim.time_out, 
         nz.transpose(1,0,2),
         xlabel=r'$r_V$ [cm]', ylabel='time [s]', zlabel=r'$n_z$ [$cm^{-3}$]',
@@ -292,7 +293,7 @@ def _plot(
     if plt_cs is None:
         plt_cs = [cs for cs in np.arange(0,nz.shape[1])]
 
-    fig,ax = plt.subplots(1,3)
+    fig,ax = plt.subplots(3,1)
 
     for src in DZ.keys():
         if src == 'tot':
@@ -328,17 +329,17 @@ def _plot(
     ax[0].set_xlabel(r'$\rho_p$')
     ax[0].set_ylabel(r'$D_Z$ [$m^2/s$]')
     ax[0].grid('on')
-    ax[0].set_ylim(0,3)
+    #ax[0].set_ylim(0,3)
 
     ax[1].set_xlabel(r'$\rho_p$')
     ax[1].set_ylabel(r'$V_Z$ [$m/s$]')
     ax[1].grid('on')
-    ax[1].set_ylim(-3,3)
+    #ax[1].set_ylim(-3,3)
 
     ax[2].set_xlabel(r'$\rho_p$')
     ax[2].set_ylabel(r'$V_Z/D_Z$ [$1/m$]')
     ax[2].grid('on')
-    ax[2].set_ylim(-3,3)
+    ax[2].set_ylim(-10,5)
 
 
 def _rscl_nz(
@@ -371,6 +372,17 @@ def _rscl_nz(
 
         # Rescales impurity density
         nz *= dmodel['AURORA']['target']['P_rad']/Prad_tot_tmp
+
+    # Rescale density profiles to rho=1 value
+    elif dmodel['AURORA']['target']['BC'] is not np.nan:
+        ind = np.argmin(
+            abs(
+                asim.rhop_grid-dmodel['AURORA']['target']['BC']['rhop']
+                )
+            )
+
+        nz *= dmodel['AURORA']['target']['BC']['val']/np.sum(nz[ind,:,-1])
+
 
     return nz
 
@@ -412,7 +424,7 @@ def _get_DV(
                     dmodel['paths']['fgacode'],
                     ),
                 folder = os.path.join(
-                    dmodel['paths']['in_path']
+                    dmodel['paths']['in_path'],
                     dmodel['paths']['out_folder'],
                     dmodel['paths']['name_sim']
                     ),
@@ -439,14 +451,34 @@ def _get_DV(
                 rhop_TGLF,
                 dout['DZ'],
                 bounds_error = False,
-                fill_value = 0.0,
-                )(asim.rhop_grid)[:,None,None] # [cm2/s], dim(fm_rhop, t, Z)
+                fill_value = 0.1,
+                )(asim.rhop_grid)*1e4 # [cm2/s], dim(fm_rhop,)
             VZ_tmp = interp1d(
                 rhop_TGLF,
                 dout['VZ'],
                 bounds_error = False,
-                fill_value = 0.0,
-                )(asim.rhop_grid)[:,None,None] # [cm/s], dim(fm_rhop, t, Z)
+                fill_value = -0.1,
+                )(asim.rhop_grid)*1e2 # [cm/s], dim(fm_rhop,)
+
+            # Reshape
+            DZ_tmp = np.repeat(
+                np.repeat(
+                    DZ_tmp[:,None],
+                    times_DV.size,
+                    axis=-1
+                    )[:,:,None],
+                asim.Z_imp+1,
+                axis=-1
+                ) # dim(fm_rhop, t, Z)
+            VZ_tmp = np.repeat(
+                np.repeat(
+                    VZ_tmp[:,None],
+                    times_DV.size,
+                    axis=-1
+                    )[:,:,None],
+                asim.Z_imp+1,
+                axis=-1
+                ) # dim(fm_rhop, t, Z)
 
         # If user wants to use FACIT predictions
         elif opt == 'FACIT':

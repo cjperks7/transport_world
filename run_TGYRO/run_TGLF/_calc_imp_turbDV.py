@@ -7,6 +7,7 @@ from TGYRO flux-matched profiles
 
 # Modules
 from portals.gacode_tools 	import TGLFmodule
+import numpy as np
 
 __all__ = [
     'calc_imp_turbDV',
@@ -29,7 +30,7 @@ def calc_imp_turbDV(
     # Simulation settings
     rhos = list(np.linspace(0.25,0.85,31)), # sq. tor. flux
     restart = True,     # True = from scratch, False = already have output
-    TGLFsettings = 4,   # 1 -> SAT0, 2 -> SAT1, 3 -> SAT1geo, 4 -> SAT2, 5 -> SAT2em
+    TGLFsettings = 4,   # 1 -> SAT1 old, 2 -> SAT0, 3 -> SAT1geo, 4 -> SAT2, 5 -> SAT2em
     # PLotting
     plt_all = None,
     ):
