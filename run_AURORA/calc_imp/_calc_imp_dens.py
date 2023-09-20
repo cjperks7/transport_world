@@ -326,6 +326,7 @@ def _plot(
     leg = ax[0].legend()
     leg.set_draggable('on')
 
+    ax[0].set_yscale('log')
     ax[0].set_xlabel(r'$\rho_p$')
     ax[0].set_ylabel(r'$D_Z$ [$m^2/s$]')
     ax[0].grid('on')
