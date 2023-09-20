@@ -34,6 +34,7 @@ def get_fits(
     t0 = None,
     dt = None,
     plt_all = None,
+    plt_coor='rhot',
     ):
     dout['paths']['kin'] = path_kin
     dout['t0_s'] = t0
@@ -86,6 +87,7 @@ def get_fits(
             Ti = Ti,
             t0=t0,
             dt=dt,
+            plt_coor=plt_coor,
             )
 
     return dout
@@ -100,30 +102,36 @@ def get_fits(
 def _conv_rad(
     dout=None,
     diag=None,
+    xout='rhot',
     ):
     '''
     Converts various radial bases used for diags to sq. norm. tor. flux
     '''
 
-    # rmin -> rhot
+    if xout == 'rhot':
+        xvar = dout['rhot']
+    elif xout == 'rhop':
+        xvar = dout['rhop']
+
+    # rmin -> output x-variable
     if 'r_m' in diag.keys():
-        rhot_all = interp1d(
+        xnew_all = interp1d(
             dout['rmin_m'],
-            dout['rhot'],
+            xvar,
             bounds_error=False,
             fill_value = (0, dout['rmin_m'][-1])
             )(diag['r_m']-float(dout['rcentr_m']))
 
-    # psin -> rhot
+    # psin -> output x-variable
     elif 'psin' in diag.keys():
-        rhot_all = interp1d(
+        xnew_all = interp1d(
             dout['rhop']**2,
-            dout['rhot'],
+            xvar,
             bounds_error=False,
             fill_value = (0,1)
             )(diag['psin'])
 
-    return rhot_all
+    return xnew_all
 
 def _plot(
     dout=None,
@@ -133,24 +141,33 @@ def _plot(
     Ti=None,
     t0=None,
     dt=None,
+    plt_coor = 'rhot',
     ):
+
+    # x-axis variable
+    if plt_coor == 'rhot':
+        xvar = dout['rhot']
+        xlab = r'$\rho_t$'
+    elif plt_coor == 'rhop':
+        xvar = dout['rhop']
+        xlab = r'$\rho_p$'
 
     fig, ax = plt.subplots(1,3)
 
     # Plots ne
     if ne is not None:
-        ax[0].plot(dout['rhot'], ne)
-    ax[0].plot(dout['rhot'], dout['ne_19m3'], 'k', label='fit time-avg')
+        ax[0].plot(xvar, ne)
+    ax[0].plot(xvar, dout['ne_19m3'], 'k', label='fit time-avg')
 
     # Plots Te
     if Te is not None:
-        ax[1].plot(dout['rhot'], Te)
-    ax[1].plot(dout['rhot'], dout['Te_keV'], 'k', label='fit time-avg')
+        ax[1].plot(xvar, Te)
+    ax[1].plot(xvar, dout['Te_keV'], 'k', label='fit time-avg')
 
     # Plots Ti
     if Ti is not None:
-        ax[2].plot(dout['rhot'], Ti)
-    ax[2].plot(dout['rhot'], dout['Ti_keV'], 'k', label='fit time-avg')
+        ax[2].plot(xvar, Ti)
+    ax[2].plot(xvar, dout['Ti_keV'], 'k', label='fit time-avg')
   
     # -----------------
     # Experimental data
@@ -208,36 +225,37 @@ def _plot(
                         val /= 1e19
                         val_std /= 1e19
 
-                    rhot_all = _conv_rad(
+                    xnew_all = _conv_rad(
                         dout = dout,
-                        diag = dkin[prof][diag]
+                        diag = dkin[prof][diag],
+                        xout = plt_coor,
                         )
 
-                    rhot = rhot_all[:,t_ind]
+                    xnew = xnew_all[:,t_ind]
 
                     ax[num].errorbar(
-                        rhot, 
+                        xnew, 
                         val, 
                         yerr = val_std,
                         fmt='*', label=diag
                         )
 
 
-    ax[0].set_xlabel(r'$\rho_t$')
+    ax[0].set_xlabel(xlab)
     ax[0].set_ylabel(r'$n_e$ [1e19 $m^{-3}$]')
     ax[0].grid('on')
     ax[0].set_ylim(0,20)
     leg0 = ax[0].legend()
     leg0.set_draggable('on')
 
-    ax[1].set_xlabel(r'$\rho_t$')
+    ax[1].set_xlabel(xlab)
     ax[1].set_ylabel(r'$T_e$ [$keV$]')
     ax[1].grid('on')
     ax[1].set_ylim(0,3)
     leg1 = ax[1].legend()
     leg1.set_draggable('on')
 
-    ax[2].set_xlabel(r'$\rho_t$')
+    ax[2].set_xlabel(xlab)
     ax[2].set_ylabel(r'$T_i$ [$keV$]')
     ax[2].grid('on')
     ax[2].set_ylim(0,2)
