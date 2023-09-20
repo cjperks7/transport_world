@@ -258,7 +258,7 @@ def _plot(
     ax[2].set_xlabel(xlab)
     ax[2].set_ylabel(r'$T_i$ [$keV$]')
     ax[2].grid('on')
-    ax[2].set_ylim(0,2)
+    ax[2].set_ylim(0,3)
     leg2 = ax[2].legend()
     leg2.set_draggable('on')
 

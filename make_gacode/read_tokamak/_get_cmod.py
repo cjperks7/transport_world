@@ -107,6 +107,12 @@ def get_cmod(
             dout=dout,
             )
 
+    # Loads stored energy
+    if 'W_MHD' in quants:
+        dout = _get_WMHD(
+            dout=dout,
+            )
+
     return dout
 
 
@@ -515,5 +521,26 @@ def _get_TeoTi(
 
     # Calculates Te/Ti
     dout['exp']['Te/Ti'] = dout['Te_keV']/dout['Ti_keV'] # dim(rhop,)
+
+    return dout
+
+def _get_WMHD(
+    dout = None,
+    ):
+
+    # MDSplus tree
+    spec = MDSplus.Tree('analysis', dout['shot'])
+
+    # Loads Ar gas feed data
+    WMHD_nd = spec.getNode(r'\analysis::EFIT_AEQDSK:wplasm')
+    WMHD = WMHD_nd.data()
+    t_WMHD = WMHD_nd.dim_of(0).data()
+
+    # Stores data
+    dout['exp']['W_MHD'] = {}
+    dout['exp']['W_MHD']['val'] = [WMHD]
+    dout['exp']['W_MHD']['time'] = [t_WMHD]
+    dout['exp']['W_MHD']['units'] = 'kJ'
+    dout['exp']['W_MHD']['diags'] = ['EFIT']
 
     return dout
