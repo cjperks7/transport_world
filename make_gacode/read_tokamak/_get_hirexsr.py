@@ -10,6 +10,7 @@ import MDSplus
 import matplotlib.pyplot as plt
 import numpy as np
 import copy
+from scipy.interpolate import interp1d
 
 plt.rcParams.update({'font.size': 16})
 
@@ -27,7 +28,7 @@ __all__ = [
 def get_hirexsr(
     shot=None,
     tht = 0,
-    quants=None, # None -> ['int', 'spectra']
+    quants=None, # None -> ['int', 'spectra', 'moments']
     plt_all=None,
     plt_ch=None,
     ):
@@ -39,7 +40,7 @@ def get_hirexsr(
 
     # Defaults
     if quants is None:
-        quants = ['int', 'spectra']
+        quants = ['int', 'spectra', 'moments']
 
     # Gets intensity time traces
     if 'int' in quants:
@@ -50,6 +51,12 @@ def get_hirexsr(
     # Gets spectra 
     if 'spectra' in quants:
         dout = _get_spectra(
+            dout=dout,
+            )
+
+    # Gets moments of the signal
+    if 'moments' in quants:
+        dout = _get_moments(
             dout=dout,
             )
 
@@ -68,6 +75,10 @@ def get_hirexsr(
 def plt_hirexsr(
     dout=None,
     plt_ch=None,
+    dplt_mom={
+        't1': [0.75, 0.85],
+        't2': [1.15,1.25],
+        },
     ):
 
     # Plots intensity versus time
@@ -136,12 +147,93 @@ def plt_hirexsr(
                 plt_sum=False
                 )
 
+    # Plots brightness ratio
+    if 'mom' in list(dout.keys()) and dplt_mom is not None:
+        fig3, ax3 = plt.subplots(1, len(dout['mom'].keys()))
+        fig3.tight_layout(pad=1.0)
+
+        # Loop over lines
+        for ll, line in enumerate(list(dout['mom'].keys())):
+            # Time window to average data
+            ind1 = np.where(
+                (dout['mom'][line]['t_s'] >= dplt_mom['t1'][0])
+                & (dout['mom'][line]['t_s'] <= dplt_mom['t1'][-1])
+                )[0]
+            ind2 = np.where(
+                (dout['mom'][line]['t_s'] >= dplt_mom['t2'][0])
+                & (dout['mom'][line]['t_s'] <= dplt_mom['t2'][-1])
+                )[0]
+
+            # Counts data
+            data1 = np.mean(dout['mom'][line]['data'][0,ind1,:], axis=-2) # [], dim(nchan,)
+            data2 = np.mean(dout['mom'][line]['data'][0,ind2,:], axis=-2) # [], dim(nchan,)
+
+            psin1 = np.mean(dout['mom'][line]['psin'][ind1,:], axis=-2) # [], dim(nchan,)
+            psin2 = np.mean(dout['mom'][line]['psin'][ind2,:], axis=-2) # [], dim(nchan,)
+
+            ax3[ll].plot(
+                psin1,
+                1- (data2/data1),
+                'r*'
+                )
+
+            ax3[ll].set_xlabel(r'$\sqrt{\Psi_n}$')
+            ax3[ll].set_ylabel('Brightness reduction')
+            ax3[ll].set_title(line)
+            ax3[ll].set_ylim(0,1)
+            ax3[ll].grid('on')
+
 
 ###########################################
 #
 #               Utilities
 #
 ###########################################
+
+# Gets moments time traces v. psin
+def _get_moments(
+    dout=None,
+    ):
+
+    # Initializes output
+    dout['mom'] = {}
+
+    # Available data
+    lines = ['X', 'Z', 'LYA1']
+
+    # Loop over lines
+    for line in lines:
+        if line == 'X' or line == 'Z':
+            bnch = 'HELIKE'
+        elif line == 'LYA1':
+            bnch = 'HLIKE'
+
+        # MDSplus tree
+        _, branchNode = _cmod_tree(dout=dout, branch=bnch)
+
+        # MDSplus node
+        mom_nd = branchNode.getNode('moments.'+line+':mom')
+
+        # get time basis
+        all_times = np.asarray(mom_nd.dim_of(1))
+        mask = all_times > -1
+
+        # Loads channel mapping
+        chmap = branchNode.getNode('binning:chmap').data()[0]
+        maxChan = np.max(chmap)
+        ch_num = np.arange(maxChan) + 1
+
+        data = mom_nd.data()[:,mask,:]
+        psin = mom_nd.dim_of(0).data()[mask,:] 
+
+        # Stores data
+        dout['mom'][line] = {}
+        dout['mom'][line]['data'] = data[:,:,ch_num-1]          # [], dim(mom, nt, nchan)
+        dout['mom'][line]['psin'] = psin[:,ch_num-1]            # [], dim(nt, nchan)
+        dout['mom'][line]['t_s'] = all_times[mask]              # [s], dim(nt,)
+
+    # Output
+    return dout
 
 # Gets intensity time traces
 def _get_int(
