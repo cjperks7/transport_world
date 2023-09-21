@@ -134,7 +134,7 @@ def build_profnt(
                     )
 
                 # Ion density data to use
-                try ext_nz['ion'].index(ion):
+                try:
                     data_nz = ext_nz['data'][ext_nz['ion'].index(ion)]
                 except:
                     data_nz = inputga['ni_'+str(kion)]*1e13

@@ -12,6 +12,9 @@ Sept. 20, 2023
 # Modules
 import numpy as np
 from transport_world.make_gacode import read_tokamak as rTok
+import matplotlib.pyplot as plt
+
+plt.rcParams.update({'font.size': 16})
 
 __all__ = [
     'get_BIS'
@@ -38,7 +41,7 @@ def get_BIS(
         )
 
     # Finds average powers in time range of interest
-    kpwr = ['rad', 'ohm', 'rf']
+    kpwr = ['rad', 'ohm']
     ddata = {}
 
     for pwr in kpwr:
@@ -86,12 +89,22 @@ def _time_avg(
     t2=None,
     ):
 
-    # Finds time windows of interest
-    ind1 = np.where(ddata['time'] >= t1[0] & ddata['time'] <= t1[-1])[0]
-    ind2 = np.where(ddata['time'] >= t2[0] & ddata['time'] <= t2[-1])[0]
+    # Initialize data
+    val1 = []
+    val2 = []
+
+    # Loop over diags
+    for jj in np.arange(len(ddata['diags'])):
+
+        # Finds time windows of interest
+        ind1 = np.where((ddata['time'][jj] >= t1[0]) & (ddata['time'][jj] <= t1[-1]))[0]
+        ind2 = np.where((ddata['time'][jj] >= t2[0]) & (ddata['time'][jj] <= t2[-1]))[0]
+
+        val1.append(np.mean(ddata['val'][jj][ind1]))
+        val2.append(np.mean(ddata['val'][jj][ind2]))
 
     # Outputs time average of window
-    return [np.mean(ddata['val'][ind1]), np.mean(ddata['val'][ind2])]
+    return [np.mean(val1), np.mean(val2)]
 
 # Performs linear fit over time window
 def _line_fit(
@@ -101,23 +114,23 @@ def _line_fit(
     ):
 
     # Finds time windows of interest
-    ind1 = np.where(ddata['time'] >= t1[0] & ddata['time'] <= t1[-1])[0]
-    ind2 = np.where(ddata['time'] >= t2[0] & ddata['time'] <= t2[-1])[0]
+    ind1 = np.where((ddata['time'][0] >= t1[0]) & (ddata['time'][0] <= t1[-1]))[0]
+    ind2 = np.where((ddata['time'][0] >= t2[0]) & (ddata['time'][0] <= t2[-1]))[0]
 
     # Performs linear fit
-    m1, b1 = np.polyfit(ddata['time'][ind1], ddata['val'][ind1], 1)
-    m2, b2 = np.polyfit(ddata['time'][ind2], ddata['val'][ind2], 1)
+    m1, b1 = np.polyfit(ddata['time'][0][ind1], ddata['val'][0][ind1], 1)
+    m2, b2 = np.polyfit(ddata['time'][0][ind2], ddata['val'][0][ind2], 1)
 
     # Outputs linear fit
     return [
-        [m1, b1, ddata['time'][ind1]],
-        [m2, b2, ddata['time'][ind2]]
+        [m1, b1, ddata['time'][0][ind1]],
+        [m2, b2, ddata['time'][0][ind2]]
         ]
 
 # Performs simple break-in-slope analysis
 def _calc_BIS(
     ddata=None,
-    )
+    ):
 
     # Calculates transported power when RF is off (assumed t1)
     Ptrans = ddata['ohm'][0] -ddata['rad'][0] - ddata['W_MHD'][0][0]
@@ -156,19 +169,20 @@ def _plot(
                 label = pwr +'_'+dout['exp'][pwr]['diags'][jj]
                 )
             if pwr == 'rf':
-                ax[0].plot(
-                    [t1[0], t2[-1]],
-                    [ddata['BIS'][0], ddata['BIS'][0]],
-                    'b--',
-                    label='transport'
-                    )
+                if dout['exp'][pwr]['diags'][jj] == 'ICRH':
+                    ax[0].plot(
+                        [t1[0], t2[-1]],
+                        [ddata['BIS'][0], ddata['BIS'][0]],
+                        'b--',
+                        label='transport'
+                        )
 
-                ax[0].plot(
-                    t2,
-                    [ddata['BIS'][1], ddata['BIS'][1]],
-                    'k--',
-                    label='RF coupled'
-                    )
+                    ax[0].plot(
+                        t2,
+                        [ddata['BIS'][1], ddata['BIS'][1]],
+                        'k--',
+                        label='RF coupled'
+                        )
 
             else:
                 ax[0].plot(
@@ -230,10 +244,10 @@ def _plot(
         )
     
     ax[1].set_xlim(t1[0], t2[-1])
-    ax[1].set_ylim(3e4,5e4)
+    ax[1].set_ylim(3e1,5e1)
 
     ax[1].set_xlabel('time [s]')
-    ax[1].set_ylabel('W_MHD [J]')
+    ax[1].set_ylabel('W_MHD [kJ]')
 
     ax[1].grid('on')
 

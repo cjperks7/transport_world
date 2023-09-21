@@ -532,7 +532,7 @@ def _get_WMHD(
     spec = MDSplus.Tree('analysis', dout['shot'])
 
     # Loads Ar gas feed data
-    WMHD_nd = spec.getNode(r'\analysis::EFIT_AEQDSK:wplasm')
+    WMHD_nd = spec.getNode(r'\analysis::EFIT_AEQDSK:wplasm')/1e3
     WMHD = WMHD_nd.data()
     t_WMHD = WMHD_nd.dim_of(0).data()
 
