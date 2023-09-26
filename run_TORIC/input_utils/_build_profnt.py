@@ -125,8 +125,14 @@ def build_profnt(
     # Loop over ions
     Ti_row = False
     for ii,ion in enumerate(ions):
+        ion_in_ga = False
+
+        # Loop over ions in input.gacode file
         for kion in inputga['IONS'].keys():
             if inputga['IONS'][kion][0] == ion:
+                # Flag that ion is present in input.gacode file
+                ion_in_ga = True
+
                 # Writes header for ion density [cm^-3]
                 f.write(
                     ('ni_'+str(ii+1)+', cc').rjust(10, ' ')
@@ -139,7 +145,7 @@ def build_profnt(
                 except:
                     data_nz = inputga['ni_'+str(kion)]*1e13
 
-                # Write ion temperature data
+                # Write ion density data
                 _write_block(
                     f=f,
                     nrho = nrho,
@@ -164,6 +170,29 @@ def build_profnt(
                     # Switchs flag to stop writing ion temperature block
                     if diff_temp == 0:
                         Ti_row = True
+
+        # If ion was not in input.gacode file
+        if not ion_in_ga:
+            # Tries to see if an external profile was supplied
+            try:
+                data_nz = ext_nz['data'][ext_nz['ion'].index(ion)]
+
+                # Writes header for ion density [cm^-3]
+                f.write(
+                    ('ni_'+str(ii+1)+', cc').rjust(10, ' ')
+                    + "\n"
+                    )
+
+                # Write ion density data
+                _write_block(
+                    f=f,
+                    nrho = nrho,
+                    data = data_nz,
+                    )
+
+            # Error message
+            except:
+                print('Missing data for ion = '+ion)
 
     # Finish file writing         
     f.close()
