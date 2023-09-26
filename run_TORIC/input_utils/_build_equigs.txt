@@ -1,0 +1,25 @@
+
+Tutorial on how to build TORIC5 input file for the magnetic equilibrium
+
+Step 1. Create an EFIT eqdsk file
+
+1.1 -> type: IDL in command line
+
+1.2 -> type: write_eqdsk, shot#, time#, tree='efit20'
+
+Writes gfile and afile in cwd
+
+1.3 -> cp to directory you want to run TORIC5 on eofe7
+
+
+Step 2. Create an equigs file for TORIC5
+
+2.1 -> type: ipython in command line
+
+2.2 -> source the following Modules
+
+%env  LD_LIBRARY_PATH=/home/software/psfc/pkg/fftw/2.1.5/intel-17/impi/lib:/home/software/psfc/pkg/netcdf-fortran-4.4.4/intel-17/lib:/home/software/psfc/pkg/netcdf-4.4.1.1/intel-17/lib:/home/software/psfc/local/lib:/home/software/intel/2020-04/compilers_and_libraries_2020.4.304/linux/mpi/intel64/libfabric/lib:/home/software/intel/2020-04/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib/release:/home/software/intel/2020-04/compilers_and_libraries_2020.4.304/linux/mpi/intel64/lib:/home/software/intel/2020-04/itac/2020.3.036/intel64/slib:/home/software/intel/2020-04/compilers_and_libraries_2020.4.304/linux/compiler/lib/intel64_lin:/home/software/intel/2020-04/compilers_and_libraries_2020.4.304/linux/ipp/lib/intel64:/home/software/intel/2020-04/compilers_and_libraries_2020.4.304/linux/mkl/lib/intel64_lin:/home/software/intel/2020-04/compilers_and_libraries_2020.4.304/linux/tbb/lib/intel64/gcc4.8:/home/software/intel/2020-04/debugger_2020/libipt/intel64/lib:/home/software/intel/2020-04/compilers_and_libraries_2020.4.304/linux/daal/lib/intel64_lin:/home/software/intel/2020-04/compilers_and_libraries_2020.4.304/linux/daal/../tbb/lib/intel64_lin/gcc4.4:/home/software/intel/2020-04/compilers_and_libraries_2020.4.304/linux/daal/../tbb/lib/intel64_lin/gcc4.8:/home/software/intel/2020-04/compilers_and_libraries_2020.4.304/linux/compiler/lib/intel64_lin:/home/software/gcc/9.3.0/pkg/openmpi/4.0.5/lib:/home/software/cuda/10.2/lib64:/home/software/gcc/9.3.0/pkg/ucx/1.9.0/lib:/home/software/gcc/9.3.0/lib64:/home/software/gcc/9.3.0/lib:/home/software/gcc/4.8.5/pkg/isl/0.15/lib:/home/software/psfc/local/mdsplus/lib
+
+2.3 -> Generate TORIC5 equilibrium file with geqxpl utility
+
+!geqxpl @equigs_gen/g_filename=g1140221013.01000/equigs_filename=equigs.dat
