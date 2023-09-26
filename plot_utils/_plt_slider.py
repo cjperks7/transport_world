@@ -25,7 +25,14 @@ def plt_slider(
     xxlabel=None,
     yylabel=None,
     zzlabel=None,
+    dzlabels=None,
     plt_sum=None,
+    x_line=None,
+    y_line=None,
+    xscale='linear',
+    yscale='linear',
+    xlim=None,
+    ylim=None,
     ):
     '''
     NOTE: I assume my data is in the form of (yyy,xxx)
@@ -71,10 +78,14 @@ def plt_slider(
 
                 labels.append(str(key1))
 
-    else:
+    elif dzzz.ndim == 2:
         zzz = (dzzz.T)[None,:,:] # di(1, xxx, yyy)
 
         labels = ['total']
+
+    else:
+        zzz = dzzz.transpose(0,2,1)  # dim(nlabels, xxx, yyy)
+        labels = dzlabels
 
     # Uses Aurora slider tools
     aurora.plot_tools.slider_plot(
@@ -86,6 +97,12 @@ def plt_slider(
         zlabel=zzlabel,
         labels=labels,
         plot_sum=plt_sum,
+        x_line=x_line,
+        y_line=y_line,
+        xscale=xscale,
+        yscale=yscale,
+        xlim=xlim,
+        ylim=ylim,
         )
 
 
