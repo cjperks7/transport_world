@@ -80,7 +80,7 @@ dmodel = {
             'wall_recycling': 1.0,
             },
         'target':{
-            'c_imp': 1e-3,
+            'c_imp': 0.5e-3,
             'P_rad': np.nan,
             #'BC': {'rhop': 0.98, 'val': 1.0},
             },
@@ -89,7 +89,7 @@ dmodel = {
 
 dimp = rA.calc_imp_dens(
     dmodel = dmodel,
-    plt_all = False,
+    plt_all = True,
     )
 
 

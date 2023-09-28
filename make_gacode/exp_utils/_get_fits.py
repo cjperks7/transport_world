@@ -112,6 +112,8 @@ def _conv_rad(
         xvar = dout['rhot']
     elif xout == 'rhop':
         xvar = dout['rhop']
+    elif xout == 'rmin_m':
+        xvar = dout['rmin_m']
 
     # rmin -> output x-variable
     if 'r_m' in diag.keys():
@@ -151,6 +153,9 @@ def _plot(
     elif plt_coor == 'rhop':
         xvar = dout['rhop']
         xlab = r'$\rho_p$'
+    elif plt_coor == 'rmin_m':
+        xvar = dout['rmin_m']
+        xlab = r'$r$ [$cm$]'
 
     fig, ax = plt.subplots(1,3)
 
