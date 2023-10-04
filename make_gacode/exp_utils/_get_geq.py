@@ -13,9 +13,11 @@ from scipy.interpolate import interp1d
 from omfit_classes import omfit_eqdsk
 import matplotlib.pyplot as plt
 from portals.gs_tools import GEQmodule
+import scipy.constants as cnt
 
 __all__ = [
     'get_geq',
+    'get_harm_res',
 ]
 
 ##########################################################
@@ -110,3 +112,53 @@ def get_geq(
         plt.show()
 
     return dout
+
+##########################################################
+#
+#                     Utilities
+#
+##########################################################
+
+# Finds the (R,Z) contour of a cyclotron resonance layer
+def get_harm_res(
+    # Files
+    path_input = None,
+    path_gfile = None,
+    # Wave
+    freq = 80e6, # [Hz]
+    order = 2,
+    # Species
+    cs = 16,
+    amu = 40,
+    ):
+
+    # Output data from gfile
+    gfile = omfit_eqdsk.OMFITgeqdsk(path_input+path_gfile)
+
+    # Mesh
+    R = gfile['AuxQuantities']['R'] # [m]
+    Z = gfile['AuxQuantities']['Z'] # [m]
+
+    # B-field
+    Bt = gfile['AuxQuantities']['Bt'] # [T]
+
+    # Initializes output
+    Zout = Z.copy()
+    Rout = np.zeros(len(Zout))
+
+    # Fine Mesh
+    Rfine = np.linspace(min(R), max(R), 100)
+
+    # Loop over height
+    for ii in np.arange(len(Z)):
+        # Fine B-field
+        Bfine = interp1d(R,Bt[ii,:])(Rfine)
+
+        # Index of harmonic resonance
+        ind = np.argmin(abs(Bfine - (freq*2*np.pi/order)*(cnt.m_p/cnt.e) *amu/cs))
+
+        # Radial position
+        Rout[ii] = Rfine[ind]
+
+    # Output, [m]
+    return Rout, Zout
