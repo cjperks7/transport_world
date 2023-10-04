@@ -5,21 +5,15 @@ import numpy as np
 import numpy.fft as ft
 import scipy.io.netcdf as nc
 import matplotlib.pyplot as plt
-from matplotlib import cm
 import os
+from matplotlib import ticker, cm
 
-#the original file is in toric_tools_jwright.py
-#I have tried to do some minor revision in this one....
-
-
-#neither of these seems to work anymore. Look at details May 2017 JCW
 def cmap_xmap(function,cmap):
     """ Applies function, on the indices of colormap cmap. Beware, function
     should map the [0, 1] segment to itself, or you are in for surprises.
     
     See also cmap_xmap.
     """
-    import matplotlib
     cdict = cmap._segmentdata
     function_to_map = lambda x : (function(x[0]), x[1], x[2])
     for key in ('red','green','blue'):
@@ -31,42 +25,17 @@ def cmap_xmap(function,cmap):
     return matplotlib.colors.LinearSegmentedColormap('colormap',cdict,1024)
 
 
-def reverse_colourmap(cmap, name = 'my_cmap_r'):
-    import matplotlib as mpl
+def print_vector(nrep,fstr,a):
     """
-    In: 
-    cmap, name 
-    Out:
-    my_cmap_r
+    Converts an array of numbers into a string formated by fstr with nrep values per line.
+    """
+    n=a.size
+    pa=""
+    ta=a.reshape((a.size),order='F')
+    for j in range(0,n,nrep):
+        pa=pa+ "".join(map(lambda f: fstr % f, ta[j:min(j+nrep,n)]))+"\n"
+    return pa
 
-    Explanation:
-    t[0] goes from 0 to 1
-    row i:   x  y0  y1 -> t[0] t[1] t[2]
-                   /
-                  /
-    row i+1: x  y0  y1 -> t[n] t[1] t[2]
-
-    so the inverse should do the same:
-    row i+1: x  y1  y0 -> 1-t[0] t[2] t[1]
-                   /
-                  /
-    row i:   x  y1  y0 -> 1-t[n] t[2] t[1]
-    """        
-    reverse = []
-    k = []   
-
-    for key in cmap._segmentdata:    
-        k.append(key)
-        channel = cmap._segmentdata[key]
-        data = []
-
-        for t in channel:                    
-            data.append((1-t[0],t[2],t[1]))            
-        reverse.append(sorted(data))    
-
-    LinearL = dict(zip(k,reverse))
-    my_cmap_r = mpl.colors.LinearSegmentedColormap(name, LinearL) 
-    return my_cmap_r
 
 class toric_analysis:
     """Class to encapsulate tools used for toric analysis.
@@ -292,32 +261,38 @@ class toric_analysis:
         plt.xlabel(r'$X[cm]$')
         return line
 
-    def __plot1D( self, xvar, yvar, ptitle='', plabel='', idx2=None):
-        "Internal 1D plot"
 
-        x=self.cdf_hdl.variables[xvar] #.data
-        y=self.cdf_hdl.variables[yvar] #.data
+    def __plot1D( self, xvar, yvar, ptitle=None, plabel='', idx2=None):
+        "Internal 1D plot"
+        x=self.cdf_hdl.variables[xvar]
+        y=self.cdf_hdl.variables[yvar]
         if (self.mode[:2]=='LH'):
             xname=''
             yname=plabel
         else:
-            xname=x.long_name
-            yname=y.long_name
-        x=x.data
-        y=y.data
+            xname=x.long_name.decode('UTF-8')
+            yname=(y.long_name[0:20]).decode('UTF-8') + y.units.decode('UTF-8')
+
+        x=x[:]
         if (idx2!=None):
             if (len(y.shape)==2):
                 y=y[:,idx2]
             else:
                 print(yvar+" has wrong number of dims in __plot1d.")
+                return
+        else:
+            y=y[:]
+
         if (np.size(y) > np.size(x)):
             print ("ToricTools.__plot1D resizing",yvar)
             y=np.array(y)[0:np.size(x)]
 
         line=plt.plot(x,y)
-        plt.title(ptitle)
-        plt.xlabel(str(xname))
-        plt.ylabel(str(yname[:20])) #limit length to 20 char
+        if ptitle:
+            plt.title(ptitle)
+        plt.xlabel(xname)
+        plt.ylabel(yname)
+
 
         return line
 
@@ -408,7 +383,7 @@ class toric_analysis:
         if (np.size(levels)==1):
             nlevels=7
 #            levels=np.arange(nelm/nlevels,nelm-1,nelm/nlevels)
-            levels=np.arange(nlevels)*nelm/nlevels
+            levels=(np.arange(nlevels)*nelm/nlevels).astype(int)
         else:
             levels=(np.array(levels)*nelm).astype(int)
             nlevels=np.size(levels)
@@ -426,11 +401,11 @@ class toric_analysis:
         thq=th
         for indr in range(levels.size): #levels:  #fft in python isn't normalized to N
             ir=levels[indr]
-            print ('levels',ir,levels[indr],rlevels[indr],th)
+            #print ('levels',ir,levels[indr],rlevels[indr],th)
             if q!=None:
                 thq=-2.5*(1+0.3)/(1+0.3*rlevels[indr])*(1+th/191./q(rlevels[indr]))
 
-            print (thq)
+            #print (thq)
             ffield = ft.fftshift(np.log10(abs(ft.fft(field[:,ir]))/float(ntt)+1.e-20))
             ymax = np.max( [ymax, np.max(ffield)] )
             ymin = np.min( [ymin, np.min(ffield)] )
@@ -481,7 +456,8 @@ class toric_analysis:
             'axes.titlesize': self.mypt+2.0,
             'xtick.labelsize':self.mypt,
             'ytick.labelsize':self.mypt,
-            'font.weight'  : self.fw
+            'font.weight'  : self.fw,
+            'text.usetex' : False
             }
         plt.rcParams.update(params)
 
@@ -490,8 +466,9 @@ class toric_analysis:
 
 #note that if plot commands are in the toplevel, they will not return
 #to the prompt, but wait to be killed.
-    def plot_2Dfield(self, component='E2d_z',logl=0,xunits=1.0,axis=(0.0,0.0),
-                     im=False, scaletop=1.0, ax='undef',fig='undef'):
+    def plot_2Dfield(self, component='E2d_z',species=None,logl=0,xunits=1.0,axis=(0.0,0.0),
+                     im=False, scaletop=1.0, scalebot=1.0,ax='undef',fig='undef',
+                     lscaletop=0.0,lscalebot=0.0):
         """
     
         example of using netcdf python modules to plot toric solutions
@@ -511,7 +488,7 @@ class toric_analysis:
 
         R0=axis[0]
         Z0=axis[1]
-        barfmt='%4.1e' #'%4.1e' #'%3.1f'
+        barfmt='%5.2e' #'%4.1e' #'%3.1f'
 #what should colorbar with be? format=4.1e means 8 characters
 #the bar and title of the bar add about 4 characters.
 #there are 72.27 pt/in
@@ -543,10 +520,13 @@ class toric_analysis:
         else:
             e2d = (self.cdf_hdl.variables[component]).data
 
-
         if (im):
             im_e2d=(self.cdf_hdl.variables[im_e2dname]).data 
             e2d = abs(e2d+np.complex(0.,1.)*im_e2d)
+
+        if (self.mode[:2]!='LH' and species):
+            print('plot2D, indexing species', species)
+            e2d = e2d[:,:,species-1]
 
 
         print ("2D Matrix shape:", np.shape(xx))
@@ -579,17 +559,16 @@ class toric_analysis:
 
     #contouring levels
         rmax=max([abs(emax),abs(emin)])*scaletop
-        rmin=min([0.,emax,emin])
+        rmin=min([0.,emax,emin])*scalebot
         #val=arange(emin,emax,(emax-emin)/25.,'d')
-        val=np.arange(-rmax*1.1,rmax*1.1,(rmax+rmax)/25.,'d')
+        #val=np.arange(rmin,rmax*1.1,(rmax+rmax)/25.,'d')
+        val=np.arange(rmax*0.01,rmax*1.1,(rmax-rmin)/15.,'d')
         if (im):
-            val=np.arange(0.05*rmax,rmax*1.1,(rmax)/24.,'d')
+            val=np.arange(rmin,rmax*1.1,(rmax)/24.,'d')
             print ("values",val)
 
     #reverse redblue map so red is positive
-#        revRBmap=cmap_xmap(lambda x: 1.-x, cm.get_cmap('RdBu'))
-        revRBmap=reverse_colourmap(cm.get_cmap('RdBu') )
-        cmap=cm.get_cmap('coolwarm')
+           # revRBmap=cmap_xmap(lambda x: 1.-x, cm.get_cmap('RdBu'))
 
     #finally, make the plot
         cwidth=xxx.max()-xxx.min()
@@ -614,15 +593,14 @@ class toric_analysis:
     #read ant length.  Calculate arc length vs theta to this value/2
     #in each direction, this plots the antenna location
         anthw=max(int(sx*0.01),4)
-        plt.plot(xxx[sx-anthw+1:sx+1,maxpsi],yyy[sx-anthw+1:sx+1,maxpsi],'g-',linewidth=3)
-        plt.plot(xxx[0:anthw,maxpsi],yyy[0:anthw,maxpsi],'g-',linewidth=3)
-
-#commented out by Lin, 04/17/2019
- #       if self.label:
- #           ax=plt.gca()
- #           sublabel=self.prov['path']
- #           print (sublabel)
- #           plt.text(-0.2,-0.2,sublabel,transform = ax.transAxes)
+        plt.plot(xxx[sx-anthw+1:sx+1,maxpsi],yyy[sx-anthw+1:sx+1,maxpsi],'g-',linewidth=6)
+        plt.plot(xxx[0:anthw,maxpsi],yyy[0:anthw,maxpsi],'g-',linewidth=6)
+        print("antenna: ", yyy[sx-anthw+1:sx+1,maxpsi])
+        if self.label:
+            ax=plt.gca()
+            sublabel=self.prov['path']
+            print (sublabel)
+            plt.text(-0.2,-0.2,sublabel,transform = ax.transAxes)
 
         print ("interactive off while plotting")
 #        plt.ioff()
@@ -642,14 +620,15 @@ class toric_analysis:
 
 
         if (logl <= 0):
-            CS=plt.contourf(xxx,yyy,ee2d,val*scaletop,cmap=cmap) #cm.get_cmap('RdBu')) #30APR2009 removed *0.2
-            print('cmap is RdBu')
+            CS=plt.contourf(xxx,yyy,ee2d,val,cmap=cm.jet) #30APR2009 removed *0.2
 
         if (logl > 0):
 #            lee2d=np.sign(ee2d)*np.log(np.sqrt(np.abs(ee2d)**2+1)+np.abs(ee2d))/np.log(10)
             lee2d=np.log(np.abs(ee2d)+0.1)/np.log(10)
-            CS=plt.contourf(xxx,yyy,lee2d,logl,cmap=cmap) #cm.get_cmap('RdBu'))
-
+            rmax=lee2d.ravel()[lee2d.argmax()]+lscaletop
+            rmin=lee2d.ravel()[lee2d.argmin()]+lscalebot
+            val=np.arange(rmin,rmax,(rmax-rmin)/(logl*1.0),'d')
+            CS=plt.contourf(xxx,yyy,lee2d,val,cmap=cm.jet)
         print ("interactive on")
 #        plt.ion()
 ##put the contour scales on the plot
@@ -676,26 +655,26 @@ class toric_analysis:
         "Read the equilibrium file created by toric in toricmode='equil',isol=0."
         if self.idebug:
             print ("Using ", equigsfile)
-        equigs_hdl=file(equigsfile,'r')
+        equigs_hdl=open(equigsfile,'r')
 
         varname = self.__get_varname(equigs_hdl)
-        self.equigs["rtorm"] = np.fromfile(equigs_hdl,sep=" ",count=1,dtype=float)
+        self.equigs["rtorm"] = np.fromfile(equigs_hdl,sep=" ",count=1,dtype=float)[0]
 
         varname = self.__get_varname(equigs_hdl)
-        self.equigs["raxis"]= np.fromfile(equigs_hdl,sep=" ",count=1,dtype=float)
+        self.equigs["raxis"]= np.fromfile(equigs_hdl,sep=" ",count=1,dtype=float)[0]
 
         varname = self.__get_varname(equigs_hdl)
-        self.equigs["bzero"] = np.fromfile(equigs_hdl,sep=" ",count=1,dtype=float)
+        self.equigs["bzero"] = np.fromfile(equigs_hdl,sep=" ",count=1,dtype=float)[0]
 
         varname = self.__get_varname(equigs_hdl)
-        self.equigs["torcur"]= np.fromfile(equigs_hdl,sep=" ",count=1,dtype=float)
+        self.equigs["torcur"]= np.fromfile(equigs_hdl,sep=" ",count=1,dtype=float)[0]
 
         varname = self.__get_varname(equigs_hdl)
-        self.equigs["imom"] = np.fromfile(equigs_hdl,sep=" ",count=1,dtype=int)
+        self.equigs["imom"] = np.fromfile(equigs_hdl,sep=" ",count=1,dtype=int)[0]
         imom = self.equigs["imom"]
 
         varname = self.__get_varname(equigs_hdl)
-        self.equigs["nmhd"] = np.fromfile(equigs_hdl,sep=" ",count=1,dtype=int)
+        self.equigs["nmhd"] = np.fromfile(equigs_hdl,sep=" ",count=1,dtype=int)[0]
         nmhd = self.equigs["nmhd"]
 
         varname = self.__get_varname(equigs_hdl)
@@ -720,7 +699,7 @@ class toric_analysis:
         self.equigs["rhotor"] = np.fromfile(equigs_hdl,sep=" ",count=nmhd,dtype=float)
 
         varname = self.__get_varname(equigs_hdl)
-        self.equigs["lastpsi"] = np.fromfile(equigs_hdl,sep=" ",count=1,dtype=float)
+        self.equigs["lastpsi"] = np.fromfile(equigs_hdl,sep=" ",count=1,dtype=float)[0]
 
         equigs_hdl.close()
 
@@ -733,7 +712,16 @@ class toric_analysis:
         line1,=self.psiplot(self.namemap['pelec'])
 #can use setp(lines, ) to change plot properties.
         plt.setp(line1,color='b',marker='+',label='seld')
-        ax1.set_ylabel('Power_e',color='b')
+        ax1.set_ylabel('Power',color='b')
+
+#add first two species if ICRF
+        if (self.mode[:2]!='LH'):
+           line2,=self.plotpower(power='PwIF',species=1)
+           line3,=self.plotpower(power='PwIF',species=2)
+           line4,=self.plotpower(power='PwIF',species=3)
+           line5,=self.plotpower(power='PwIH',species=1)
+           line6,=self.plotpower(power='PwIH',species=2)
+           line7,=self.plotpower(power='PwIH',species=3)
 
         ax2 = ax1.twinx()
         line2,=self.psiplot(self.namemap['poynt'])
@@ -742,6 +730,7 @@ class toric_analysis:
 #change color and symbol
         plt.setp(line2,color='r',marker='.',label='Poynt')
         ax2.set_ylabel('Poynting',color='r')
+
 #make  legend too
         plt.legend( (line1,line2), (r'$P_{eld}$','<ExB>'),loc=2 )
         fig.subplots_adjust(left=0.12,bottom=0.12,top=0.96,right=0.82,hspace=0.32)
@@ -777,12 +766,12 @@ class toric_analysis:
 
         return xmap
 
-    def get_power2D( self ):
+    def get_power2D( self, fname = None ):
 #figure out a sed way of cutting these lines into the file.
 #also need to replace '-0.' with ' -0.'
 #sed -n -e '/elec/,/,/p' filename | sed -e '/-0\./ -0./g' > torica_2dpower.sol
         try:
-            toricsol = file('torica_2dpower.sol','r')
+            toricsol = open(os.path.join(self.path,fname),'r')
         except IOError:
             print ('CRITICAL: torica_2dpower.sol not found.')
             print ('Try to generate:')
@@ -793,14 +782,19 @@ class toric_analysis:
                 cmd="sed -n  '/elec/,$p' toric.sol| sed 's/-0\./ -0./g' > torica_2dpower.sol"
 
             os.system(cmd)
-            toricsol = file('torica_2dpower.sol','r')
+            toricsol = open('torica_2dpower.sol','r')
 
 #skip title and max value
         toricsol.readline()
         toricsol.readline()
-        nt=self.cdf_hdl.dimensions['ntt']
-        nr=self.cdf_hdl.dimensions['mptpsi']
 
+        if (self.mode[:2]=='LH'):        
+            nt=self.cdf_hdl.dimensions['ntt']
+            nr=self.cdf_hdl.dimensions['mptpsi']
+        else:
+            nt=self.cdf_hdl.dimensions['ThetaDim']
+            nr=self.cdf_hdl.dimensions['PsiPwdDim']
+            
         power=np.fromfile(toricsol,sep=" ",count=nt*nr,dtype=float)
         toricsol.close()
 
@@ -825,6 +819,10 @@ class toric_analysis:
             self.plot_2Dfield(component='Eplus', im=True,logl=25)
             plt.draw()
             plt.savefig('log10Eplus2d.png',format='png')
+            self.plot_2Dfield(component='Eplus')
+            plt.draw()
+            plt.savefig('Eplus2d.png',format='png')
+            
         
         self.plot_2Dfield(im=True,logl=25)
         plt.draw()
@@ -870,6 +868,3 @@ if __name__ == '__main__':
 
 
 #make sequence of plots, ala the old toric idl driver as an option.
-
-
-
