@@ -1,0 +1,18 @@
+Here we utilize the MATLAB scripts on git under:
+git@version.aalto.fi:ascot4/matlab.git
+
+Step 1. Open MATLAB
+
+Step 2. cwd -> /home/cjperks/ASCOT4/matlab
+
+Step 3. Launch with:
+
+[mbkg, mheader] = eqdsk2magn_bkg_and_header(path/to/gfile, path/to/prefix)
+
+NOTE: If using gfile without coil info:
+    You may get issues with read_eqdsk_riplos2.m
+        I included a wrapping if statement so that if sizePFcoils < 0
+        then don't add PF coil info
+
+
+
