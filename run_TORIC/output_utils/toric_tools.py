@@ -505,22 +505,40 @@ class toric_analysis:
                 im_e2dname=component+'_im'
                 title='|'+component+'|'
                 component=component+'_re'
-        else:
+        elif not (component=='Eplus/Eminus'):
             if (component=='E2d_z'):
                 component='Ezeta'
             if (im):
                 im_e2dname='Im2'+component
                 title='|'+component+'|'
                 component='Re2'+component
+        else:
+            title=r'$|E_+/E_-|$'
 
-
+        print(component)
 #note change to use ().data instead of np.array() in scipy0.8.0
         if (component=="power" and self.mode[:2]=='LH'):
             e2d = self.get_power2D()
+        elif component=='Eplus/Eminus':
+            e2d_p = (self.cdf_hdl.variables['Re2Eplus']).data
+            e2d_m = (self.cdf_hdl.variables['Re2Eminus']).data
+
         else:
             e2d = (self.cdf_hdl.variables[component]).data
 
-        if (im):
+        if component=='Eplus/Eminus':
+            if (im):
+                im_e2d_p = (self.cdf_hdl.variables['Im2Eplus']).data
+                im_e2d_m = (self.cdf_hdl.variables['Im2Eminus']).data
+
+                e2d = abs(
+                    (e2d_p+np.complex(0.,1.)*im_e2d_p)
+                    /(e2d_m+np.complex(0.,1.)*im_e2d_m)
+                    )
+            else:
+                e2d = e2d_p/e2d_m
+
+        elif (im):
             im_e2d=(self.cdf_hdl.variables[im_e2dname]).data 
             e2d = abs(e2d+np.complex(0.,1.)*im_e2d)
 
@@ -561,8 +579,8 @@ class toric_analysis:
         rmax=max([abs(emax),abs(emin)])*scaletop
         rmin=min([0.,emax,emin])*scalebot
         #val=arange(emin,emax,(emax-emin)/25.,'d')
-        #val=np.arange(rmin,rmax*1.1,(rmax+rmax)/25.,'d')
-        val=np.arange(rmax*0.01,rmax*1.1,(rmax-rmin)/15.,'d')
+        val=np.arange(rmin,rmax*1.1,(rmax+rmax)/25.,'d')
+        #val=np.arange(rmax*0.01,rmax*1.1,(rmax-rmin)/15.,'d')
         if (im):
             val=np.arange(rmin,rmax*1.1,(rmax)/24.,'d')
             print ("values",val)
@@ -627,7 +645,10 @@ class toric_analysis:
             lee2d=np.log(np.abs(ee2d)+0.1)/np.log(10)
             rmax=lee2d.ravel()[lee2d.argmax()]+lscaletop
             rmin=lee2d.ravel()[lee2d.argmin()]+lscalebot
-            val=np.arange(rmin,rmax,(rmax-rmin)/(logl*1.0),'d')
+            if component=='Eplus/Eminus':
+                val = np.arange(-1,1,2/(logl*1.0), 'd')
+            else:
+                val=np.arange(rmin,rmax*1.1,(rmax-rmin)/(logl*1.0),'d')
             CS=plt.contourf(xxx,yyy,lee2d,val,cmap=cm.jet)
         print ("interactive on")
 #        plt.ion()
