@@ -127,7 +127,9 @@ def _edit_line(
         ['grid_2d', 'r\n'],
         ['grid_2d', 'z\n'],
         ['local', 'e_plus\n'],
-        ['local', 'e_minus\n']
+        ['local', 'e_plus_ph\n'],
+        ['local', 'e_minus\n'],
+        ['local', 'e_minus_ph\n'],
         ]
 
     # If not editting the data entry
@@ -202,7 +204,7 @@ def _edit_line(
             data = toric.cdf_hdl.variables['Zplasma'].data
             )
 
-    # Input E-fields
+    # Input E-fields in polar form
     elif prev_line.split('%')[-2:] == ['local', 'e_plus\n']:
         output_line = (
             '3'.rjust(12, ' ')
@@ -211,9 +213,9 @@ def _edit_line(
             )
 
         output_line += _write_line(
-            data = abs(
-                toric.cdf_hdl.variables['Re2Eplus'].data
-                + 1j * toric.cdf_hdl.variables['Im2Eplus'].data
+            data = np.sqrt(
+                toric.cdf_hdl.variables['Re2Eplus'].data**2
+                + toric.cdf_hdl.variables['Im2Eplus'].data**2
                 )
             )
 
@@ -225,9 +227,37 @@ def _edit_line(
             )
 
         output_line += _write_line(
-            data = abs(
-                toric.cdf_hdl.variables['Re2Eminus'].data
-                + 1j * toric.cdf_hdl.variables['Im2Eminus'].data
+            data = np.sqrt(
+                toric.cdf_hdl.variables['Re2Eminus'].data**2
+                + toric.cdf_hdl.variables['Im2Eminus'].data**2
+                )
+            )
+
+    elif prev_line.split('%')[-2:] == ['local', 'e_plus_ph\n']:
+        output_line = (
+            '3'.rjust(12, ' ')
+            +'\n'
+            +'1'.rjust(12, ' ')
+            )
+
+        output_line += _write_line(
+            data = np.arctan(
+                toric.cdf_hdl.variables['Im2Eplus'].data
+                / toric.cdf_hdl.variables['Re2Eplus'].data
+                )
+            )
+
+    elif prev_line.split('%')[-2:] == ['local', 'e_minus_ph\n']:
+        output_line = (
+            '3'.rjust(12, ' ')
+            +'\n'
+            +'1'.rjust(12, ' ')
+            )
+
+        output_line += _write_line(
+            data = np.arctan(
+                toric.cdf_hdl.variables['Im2Eminus'].data
+                / toric.cdf_hdl.variables['Re2Eminus'].data
                 )
             )
 
