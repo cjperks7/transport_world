@@ -53,17 +53,16 @@ def write_plasma1d(
     f = open(in_path+'/input_ASCOT/input.plasma_1d', 'w')
 
     # Header
-    f.write(' Input file for ASCOT containing radial 1D information of plasma temperature,density and toroidal rotation\n')
+    f.write('# Input file for ASCOT containing radial 1D information of plasma temperature,density and toroidal rotation\n')
     f.write('# range must cover [0,1] of normalised poloidal rho. It can exceed 1.')
     f.write("# Created: "+date.today().strftime("%m/%d/%Y")+" for CMOD\n")
     f.write("# Author: Conor Perks\n")
-    f.write("# \n")
 
     # Mesh data
     f.write(
         str(len(inputga['ne'])) 
         + "\t"
-        + str(len(ions)).rjust(2, ' ')
+        + str(len(ions)+1).rjust(2, ' ')
         + "\t"
         + "# Nrad,Nion"
         + "\n"
@@ -79,6 +78,12 @@ def write_plasma1d(
         ms += str(masses[ii]).ljust(3, ' ')
         cs += str(1).ljust(2, ' ')
         ns += ('Ni'+str(ii+1)+ "(1/m3)").rjust(16, ' ')
+
+    # F-like Lumped impurity fill for QN
+    Zs += str(9).ljust(3, ' ')
+    ms += str(19).ljust(3, ' ')
+    cs += str(1).ljust(2, ' ')
+    ns += ('Ni'+str(len(ions)+1)+ "(1/m3)").rjust(16, ' ')
 
     # Ion charge
     f.write(
@@ -128,6 +133,10 @@ def write_plasma1d(
                 if inputga['IONS'][kion][0] == ion:
                     # Flag that ion is present in input.gacode file
                     ion_in_ga = True
+                    if ion == 'D':
+                        kionD = str(kion)
+                    elif ion == 'H':
+                        kionH = str(kion)
 
                     # Ion density data to use
                     data_nz = inputga['ni_'+str(kion)][rr]*1e19
@@ -144,6 +153,15 @@ def write_plasma1d(
 
             # Write data
             ni += "{:1.7E}".format(data_nz).rjust(16, ' ')
+
+        # Lumped impurity fill
+        data_lump = (
+            (
+                inputga['ne'][rr] - inputga['ni_'+kionD][rr] - inputga['ni_'+kionH][rr]
+            )*1e19
+            / 9
+            )
+        ni += "{:1.7E}".format(data_lump).rjust(16, ' ')
 
         # Writes data
         f.write(
