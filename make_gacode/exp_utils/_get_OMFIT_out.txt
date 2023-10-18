@@ -1,0 +1,18 @@
+Dump of snippets of code to get OMFIT data
+
+import numpy as np
+
+ne = OMFIT['QUICKFIT']['OUTPUTS']['FIT']['n_e']
+Te = OMFIT['QUICKFIT']['OUTPUTS']['FIT']['T_e']
+Ti = np.array(OMFIT['QUICKFIT']['OUTPUTS']['FIT']['T_12C6'])
+rho = np.array(OMFIT['QUICKFIT']['OUTPUTS']['FIT']['rho'])
+time = np.array(OMFIT['QUICKFIT']['OUTPUTS']['FIT']['time'])
+
+
+
+with open('/home/cjperks/2201_Pumpout/CMOD/shots/1140221012/prof_1140221012.npy', 'wb') as f:
+    np.save(f, rho)
+    np.save(f,time)
+    np.save(f, ne)
+    np.save(f, Te)
+    np.save(f, Ti)
