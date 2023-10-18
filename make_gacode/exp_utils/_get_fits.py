@@ -18,6 +18,7 @@ plt.rcParams.update({'font.size': 16})
 
 __all__ = [
     'get_fits',
+    'conv_rad'
 ]
 
 ##########################################################
@@ -99,7 +100,7 @@ def get_fits(
 #
 ##########################################################
 
-def _conv_rad(
+def conv_rad(
     dout=None,
     diag=None,
     xout='rhot',
@@ -230,7 +231,7 @@ def _plot(
                         val /= 1e19
                         val_std /= 1e19
 
-                    xnew_all = _conv_rad(
+                    xnew_all = conv_rad(
                         dout = dout,
                         diag = dkin[prof][diag],
                         xout = plt_coor,
