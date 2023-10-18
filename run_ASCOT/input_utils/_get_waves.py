@@ -122,7 +122,7 @@ def _edit_line(
         #['compositions', 'nucindex\n'],
         ['global_param', 'frequency\n'],
         ['global_param', 'ntor\n'],
-        ['global_param', 'power_ntor_i\n'],
+        ['global_param', 'pow_ntor_i\n'],
         ['grid_2d', 'grid_type\n'],
         ['grid_2d', 'r\n'],
         ['grid_2d', 'z\n'],
@@ -137,13 +137,13 @@ def _edit_line(
         output_line = line
 
     # Defining absorbed power
-    elif prev_line.split('%')[-2:] == ['global_param', 'power_ntor_i\n']:
+    elif prev_line.split('%')[-2:] == ['global_param', 'pow_ntor_i\n']:
         output_line = (
             '1'.rjust(12,' ')
             + '\n'
             + '1'.rjust(12,' ')
             + '\n'
-            + "{:1.10F}".format(RF_abs).rjust(21, ' ')
+            + "{:1.4E}".format(RF_abs).rjust(16, ' ')
             + '\n'
             )
 
@@ -171,7 +171,7 @@ def _edit_line(
             + '\n'
             + '1'.rjust(12,' ')
             + '\n'
-            + "{:1.10F}".format(dant['ntor']).rjust(21, ' ')
+            + "{:1.0F}".format(int(dant['ntor'])).rjust(12, ' ')
             + '\n'
             )
 
