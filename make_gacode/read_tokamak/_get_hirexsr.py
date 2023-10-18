@@ -76,8 +76,8 @@ def plt_hirexsr(
     dout=None,
     plt_ch=None,
     dplt_mom={
-        't1': [0.75, 0.85],
-        't2': [1.15,1.25],
+        't1': [0.75, 0.95],
+        't2': [1.15,1.35],
         },
     ):
 
@@ -144,7 +144,8 @@ def plt_hirexsr(
                 xxlabel=r"$\lambda$ [$\AA$]",
                 yylabel="t [s] (ch="+str(plt_ch_tmp)+")",
                 zzlabel=r"Counts [arb]",
-                plt_sum=False
+                plt_sum=False,
+                yscale='log',
                 )
 
     # Plots brightness ratio
