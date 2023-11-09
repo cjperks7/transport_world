@@ -250,28 +250,41 @@ def _get_qrad(
         # (scd-> ionization rates, acd-> recombination rates, ccd->charge exchange rates) 
         atom_data = aurora.atomic.get_atom_data(imp,['scd','acd']) 
 
-        # Calls AURORA function to calculate fractional abundances assuming ionization equilibrium
-        _, fz = aurora.atomic.get_frac_abundances(
-            atom_data, 
-            dout['ne_19m3']*1e13, 
-            dout['Te_keV']*1e3,
-            rho=dout['rhop'], 
-            plot=None, 
-            ax=None
-            )# plot=plot,ax=plt.gca())
+        if 'nz_19m3' in list(dout['ions'][ion].keys()):
+            # Calculates the line & continuum radiated power for impurity, He, T, D
+            rad = aurora.radiation_model(
+                imp,
+                dout['rhop'],
+                dout['ne_19m3']*1e13,
+                dout['Te_keV']*1000, 
+                gfile,
+                n0_cm3=None, 
+                nz_cm3=dout['ions'][ion]['nz_19m3']*1e13, 
+                plot=False
+                ) # rad in [W/m^3]
 
+        else:
+            # Calls AURORA function to calculate fractional abundances assuming ionization equilibrium
+            _, fz = aurora.atomic.get_frac_abundances(
+                atom_data, 
+                dout['ne_19m3']*1e13, 
+                dout['Te_keV']*1e3,
+                rho=dout['rhop'], 
+                plot=None, 
+                ax=None
+                )# plot=plot,ax=plt.gca())
 
-        # Calculates the line & continuum radiated power for impurity, He, T, D
-        rad = aurora.radiation_model(
-            imp,
-            dout['rhop'],
-            dout['ne_19m3']*1e13,
-            dout['Te_keV']*1000, 
-            gfile,
-            n0_cm3=None, 
-            nz_cm3=dout['ions'][ion]['ni_tot_19m3'][:,None]*fz*1e13, 
-            plot=False
-            ) # rad in [W/m^3]
+            # Calculates the line & continuum radiated power for impurity, He, T, D
+            rad = aurora.radiation_model(
+                imp,
+                dout['rhop'],
+                dout['ne_19m3']*1e13,
+                dout['Te_keV']*1000, 
+                gfile,
+                n0_cm3=None, 
+                nz_cm3=dout['ions'][ion]['ni_tot_19m3'][:,None]*fz*1e13, 
+                plot=False
+                ) # rad in [W/m^3]
 
         # Total radiated power density, [MW/m^3]
         qline += rad['line_rad_dens'].sum(0)/1e6

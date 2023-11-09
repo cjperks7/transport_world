@@ -7,6 +7,10 @@ import scipy.io.netcdf as nc
 import matplotlib.pyplot as plt
 import os
 from matplotlib import ticker, cm
+import matplotlib as mpl
+
+plt.rcParams.update({'image.cmap': 'RdYlBu_r'})
+#plt.rcParams.update({'image.cmap': 'plasma_r'})
 
 def cmap_xmap(function,cmap):
     """ Applies function, on the indices of colormap cmap. Beware, function
@@ -634,11 +638,12 @@ class toric_analysis:
         plt.xlabel('X(cm)')
         plt.ylabel('Z(cm)')
 #        plt.title(r'$Re E_{||}$',fontsize=self.mypt+2.0)
+        title = r'$\log_{10}|E_\plus|$'
         plt.title(title,fontsize=self.mypt+2.0)
 
 
         if (logl <= 0):
-            CS=plt.contourf(xxx,yyy,ee2d,val,cmap=cm.jet) #30APR2009 removed *0.2
+            CS=plt.contourf(xxx,yyy,ee2d,val) #30APR2009 removed *0.2
 
         if (logl > 0):
 #            lee2d=np.sign(ee2d)*np.log(np.sqrt(np.abs(ee2d)**2+1)+np.abs(ee2d))/np.log(10)
@@ -648,8 +653,9 @@ class toric_analysis:
             if component=='Eplus/Eminus':
                 val = np.arange(-1,1,2/(logl*1.0), 'd')
             else:
-                val=np.arange(rmin,rmax*1.1,(rmax-rmin)/(logl*1.0),'d')
-            CS=plt.contourf(xxx,yyy,lee2d,val,cmap=cm.jet)
+                #val=np.arange(rmin,rmax*1.1,(rmax-rmin)/(logl*1.0),'d')
+                val = np.arange(1.5,4.8,(4.8-1.5)/(logl*1.0), 'd')
+            CS=plt.contourf(xxx,yyy,lee2d,val)
         print ("interactive on")
 #        plt.ion()
 ##put the contour scales on the plot

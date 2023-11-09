@@ -11,6 +11,8 @@ cjperks
 import numpy as np
 import scipy.constants as cnt
 import matplotlib.pyplot as plt
+from transport_world.make_gacode import exp_utils as utz
+import os
 
 plt.rcParams.update({'font.size': 16})
 
@@ -27,7 +29,8 @@ __all__ = [
 def get_ions(
     dout = None,
     dmodel = None,
-    plt_all  =None,
+    plt_all = None,
+    fimprad = None,
     ):
 
     # Initializes entry
@@ -48,7 +51,8 @@ def get_ions(
     if dmodel['option'] == 'concentration':
         dout = _calc_con(
             dout=dout,
-            dmodel=dmodel
+            dmodel=dmodel,
+            fimprad=fimprad,
         )
 
     else:
@@ -90,6 +94,7 @@ def get_ions(
 def _calc_con(
     dout=None,
     dmodel=None,
+    fimprad=None,
     ):
 
     # lumped impurity per QN
@@ -101,7 +106,21 @@ def _calc_con(
     # Loop over ions
     for ion in dmodel['ions'].keys():
         dout['ions'][ion] = {}
-        dout['ions'][ion]['ni_tot_19m3'] = dmodel['ions'][ion]['con'] * dout['ne_19m3']
+
+        if (fimprad is not None) & (ion == 'Ar'):
+            _, nz_cm3, _ = utz.get_imprad(
+                fimprad=os.path.join(dout['paths']['input'],fimprad),
+                rhop=dout['rhop'],
+                con = dmodel['ions'][ion]['con'],
+                ne_cm3 = dout['ne_19m3']*1e13,
+                vol = dout['vol_m3'],
+                )
+
+            dout['ions'][ion]['nz_19m3'] = nz_cm3/1e13 # [1e19 m3], dim(rhop, cs)
+            dout['ions'][ion]['ni_tot_19m3'] = dout['ions'][ion]['nz_19m3'].sum(1) # dim(rhop,)
+
+        else:
+            dout['ions'][ion]['ni_tot_19m3'] = dmodel['ions'][ion]['con'] * dout['ne_19m3']
 
         # Obtains charge, mass, type
         dout = _ion_scalars(
