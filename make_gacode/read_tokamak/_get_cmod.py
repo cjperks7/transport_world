@@ -192,6 +192,7 @@ def plt_cmod(
                 'r*',
                 label = 'sim.',
                 )
+            ax[int(ii%2), int(np.floor(ii/2))].set_ylim(0,5)
 
         elif quant == 'H/(H+D)':
             ax[int(ii%2), int(np.floor(ii/2))].plot(

@@ -114,6 +114,26 @@ def _get_ne(
     except:
         print('Thomson for ne not available')
 
+    # ------------------
+    # Obtains edge Thomson data
+    # ------------------
+
+    dne['Edge'] = {}
+
+    try:
+        # Obtains electron density data
+        dne['Edge']['val_1e20m3'] = tree.getNode('\electrons::top.yag_edgets.results:ne').data()/1e20 # [1e20 1/m3], dim(nchan,t)
+
+        # Radial domain
+        dne['Edge']['psin'] = tree.getNode('\electrons::top.yag_edgets.results:psinorm').data() # dim(nchan,t)
+
+        # Time domain
+        dne['Edge']['t_s'] = tree.getNode('\electrons::top.yag_edgets.results:ne').dim_of(0).data() # [s], dim(t,)
+
+    # In case this diag is not available
+    except:
+        print('Edge Thomson for ne not available')
+
 
     #Output
     return dne
@@ -154,6 +174,12 @@ def _get_Ti(
         dTi['HIREXSR_z']['t_s'] = tree.getNode(
             r'\spectroscopy::top.hirexsr.analysis.helike.profiles.z:rho'
             ).dim_of(0).data() # [s], dim(t,)
+
+        # Error check
+        if dTi['HIREXSR_z']['val_keV'].shape[0] > dTi['HIREXSR_z']['psin'].shape[0]:
+            ss = dTi['HIREXSR_z']['psin'].shape[0]
+            dTi['HIREXSR_z']['val_keV'] = dTi['HIREXSR_z']['val_keV'][:ss,:]
+            dTi['HIREXSR_z']['err_keV'] = dTi['HIREXSR_z']['err_keV'][:ss,:]
 
     # In case this diag is not available
     except:
@@ -362,6 +388,28 @@ def _get_Te(
     except:
         print('Thomson for Te not available')
 
+
+    # ------------------
+    # Obtains edge Thomson data
+    # ------------------
+
+    dTe['Edge'] = {}
+
+    try:
+        # Obtains electron density data
+        dTe['Edge']['val_keV'] = tree.getNode('\electrons::top.yag_edgets.results:te').data()/1e3 # [keV], dim(nchan,t)
+
+        # Radial domain
+        dTe['Edge']['psin'] = tree.getNode('\electrons::top.yag_edgets.results:psinorm').data() # dim(nchan,t)
+
+        # Time domain
+        dTe['Edge']['t_s'] = tree.getNode('\electrons::top.yag_edgets.results:ne').dim_of(0).data() # [s], dim(t,)
+
+    # In case this diag is not available
+    except:
+        print('Edge Thomson for ne not available')
+
+
     # ------------------
     # Obtains Michelson data
     # ------------------
@@ -370,13 +418,13 @@ def _get_Te(
 
     try:
         # Obtain electron temp data
-        dTe['Michelson']['val_keV'] = tree.getNode('\electrons::ece_te').data() # [keV] #dim(nchan,t)
+        dTe['Michelson']['val_keV'] = tree.getNode('\electrons::ece_te').data().T # [keV] #dim(nchan,t)
 
         # Radial domain
-        dTe['Michelson']['r_m'] = tree.getNode('\electrons::ece_te').dim_of(0).data() # [keV] #dim(nchan,t)
+        dTe['Michelson']['r_m'] = tree.getNode('\electrons::ece_te').dim_of(0).data() # [keV] #dim(nchan,)
 
         # Time domain
-        dTe['Michelson']['t_s'] = tree.getNode('\electrons::ece_te').dim_of(1).data() # [keV] #dim(nchan,t)
+        dTe['Michelson']['t_s'] = tree.getNode('\electrons::ece_te').dim_of(1).data() # [keV] #dim(t,)
 
     # In case this diag is not available
     except:
