@@ -18,7 +18,8 @@ plt.rcParams.update({'font.size': 16})
 
 __all__ = [
     'get_fits',
-    'conv_rad'
+    'get_imprad',
+    'conv_rad',
 ]
 
 ##########################################################
@@ -61,9 +62,9 @@ def get_fits(
     Ti = Ti_t[t_ind].T # dim(rho,t); [keV]
 
     # Removes negative values from fits
-    Te[Te<0.2] = 0.2
-    Ti[Ti<0.2] = 0.2
-    ne[ne<0.5] = 0.5
+    #Te[Te<0.2] = 0.2
+    #Ti[Ti<0.2] = 0.2
+    #ne[ne<0.5] = 0.5
 
     # Interpolates onto rho = 0->1
     ne = interp1d(rho_t, ne, axis = 0)(dout['rhot'])
@@ -92,6 +93,48 @@ def get_fits(
             )
 
     return dout
+
+
+def get_imprad(
+    fimprad = None,
+    ind_key = 0,
+    rhop = None,
+    # Rescaling controls
+    rescl = 1,
+    con = None,
+    ne_cm3 = None,
+    vol = None,
+    ):
+
+    with open(fimprad, 'rb') as f: 
+        ddata = np.load(f, allow_pickle=True)[()] # data dictionary
+
+    if rhop is None:
+        return ddata
+
+    # Returns impurity density profile
+    else:
+        key = list(ddata.keys())[ind_key]
+
+        nz_cm3 = interp1d(
+            ddata[key]['result']['rhop'],
+            ddata[key]['result']['n_imp'],
+            axis = 0
+            )(rhop) # dim(rhop, cs), [cm^-3]
+
+        # If user wants to rescale to a concentration
+        if con is not None:
+            rescl = con/ (np.trapz(
+                nz_cm3.sum(1)/ne_cm3,
+                vol
+                )/vol[-1])
+            print(rescl)
+            
+            return ddata, nz_cm3*rescl, rescl
+
+        # Else if user wants to rescale to known value
+        else:
+            return ddata, nz_cm3*rescl
 
 
 ##########################################################
@@ -236,9 +279,12 @@ def _plot(
                         diag = dkin[prof][diag],
                         xout = plt_coor,
                         )
-
-                    xnew = xnew_all[:,t_ind]
-
+                    
+                    if xnew_all.ndim > 1:
+                        xnew = xnew_all[:,t_ind]
+                    else:
+                        xnew = xnew_all
+                    
                     ax[num].errorbar(
                         xnew, 
                         val, 

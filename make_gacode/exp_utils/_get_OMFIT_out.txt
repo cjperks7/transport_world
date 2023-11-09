@@ -1,6 +1,15 @@
 Dump of snippets of code to get OMFIT data
 
+
+#########################################
+#
+#        Get fits
+#
+#########################################
+
 import numpy as np
+
+shot = '1140408020'
 
 ne = OMFIT['QUICKFIT']['OUTPUTS']['FIT']['n_e']
 Te = OMFIT['QUICKFIT']['OUTPUTS']['FIT']['T_e']
@@ -8,11 +17,80 @@ Ti = np.array(OMFIT['QUICKFIT']['OUTPUTS']['FIT']['T_12C6'])
 rho = np.array(OMFIT['QUICKFIT']['OUTPUTS']['FIT']['rho'])
 time = np.array(OMFIT['QUICKFIT']['OUTPUTS']['FIT']['time'])
 
-
-
-with open('/home/cjperks/2201_Pumpout/CMOD/shots/1140221012/prof_1140221012.npy', 'wb') as f:
+with open('/home/cjperks/2201_Pumpout/CMOD/shots/'+shot+'/prof_'+shot+'.npy', 'wb') as f:
     np.save(f, rho)
     np.save(f,time)
     np.save(f, ne)
     np.save(f, Te)
     np.save(f, Ti)
+
+
+#########################################
+#
+#        Get ImpRad output
+#
+#########################################
+
+import numpy as np
+
+shot = '1140408020'
+
+id1 = 'sim_LM_t600ms_nk4_noped'
+id2 = 'sim_LM_t1300ms_nk4_noped'
+
+run1 = OMFIT['ImpRad']['RUN_DB'][id1]
+run2 = OMFIT['ImpRad']['RUN_DB'][id2]
+
+diag_data1 = run1['MIN_INPUTS']['diag_data']['XICS']
+aurora1 = run1['MIN_OUTPUTS']['Ar_aurora_result']
+
+diag_data2 = run2['MIN_INPUTS']['diag_data']['XICS']
+aurora2 = run2['MIN_OUTPUTS']['Ar_aurora_result']
+
+ddata = {}
+ddata[id1] = {}
+ddata[id2] = {}
+
+for iline, kline in enumerate(diag_data1['lines']):
+
+    ddata[id1][kline] = {}
+    ddata[id2][kline] = {}
+
+    ind_ch1 = diag_data1['sub_diags'][iline]
+    ind_ch2 = diag_data2['sub_diags'][iline]
+
+    ddata[id1][kline]['fit'] = {}
+    ddata[id2][kline]['fit'] = {}
+
+    ddata[id1][kline]['fit']['val'] = run1['MIN_OUTPUTS']['diag_fits']['XICS']['model'][ind_ch1]
+    ddata[id1][kline]['fit']['rhop'] = diag_data1[kline]['psi']
+    ddata[id1][kline]['fit']['targ'] = diag_data1[kline]['data']
+    ddata[id1][kline]['fit']['raw_d'] =  diag_data1[kline]['raw_data']
+    ddata[id1][kline]['fit']['raw_r'] =  diag_data1[kline]['raw_psi']
+    ddata[id1][kline]['fit']['GOOD'] =  diag_data1[kline]['GOOD']
+    ddata[id1][kline]['fit']['cmp_run'] =  diag_data1[kline]['cmp_run']
+
+    ddata[id2][kline]['fit']['val'] = run2['MIN_OUTPUTS']['diag_fits']['XICS']['model'][ind_ch1]
+    ddata[id2][kline]['fit']['rhop'] = diag_data2[kline]['psi']
+    ddata[id2][kline]['fit']['targ'] = diag_data2[kline]['data']
+    ddata[id2][kline]['fit']['raw_d'] =  diag_data2[kline]['raw_data']
+    ddata[id2][kline]['fit']['raw_r'] =  diag_data2[kline]['raw_psi']
+    ddata[id2][kline]['fit']['GOOD'] =  diag_data2[kline]['GOOD']
+    ddata[id2][kline]['fit']['cmp_run'] =  diag_data2[kline]['cmp_run']
+
+ddata[id1]['result'] = {}
+ddata[id1]['result']['n_imp'] = aurora1['impurity_density'][-1,:,:].T
+ddata[id1]['result']['rhop'] = aurora1['rhop_grid']
+
+ddata[id1]['result']['D'] = root['ImpRad']['SHARE']['DD1']
+ddata[id1]['result']['V'] = root['ImpRad']['SHARE']['VV1']
+
+ddata[id2]['result'] = {}
+ddata[id2]['result']['n_imp'] = aurora2['impurity_density'][-1,:,:].T
+ddata[id2]['result']['rhop'] = aurora2['rhop_grid']
+
+#ddata[id2]['result']['D'] = root['ImpRad']['SHARE']['DD2']
+#ddata[id2]['result']['V'] = root['ImpRad']['SHARE']['VV2']
+
+with open('/home/cjperks/2201_Pumpout/CMOD/shots/'+shot+'/imprad_'+shot+'.npy', 'wb') as f:
+    np.save(f, ddata)
