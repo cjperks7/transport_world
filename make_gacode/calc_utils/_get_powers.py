@@ -482,11 +482,13 @@ def _get_qfus(
         n_fuel2 = (
             dout['ions']['D']['ni_tot_19m3'] * dout['ions']['T']['ni_tot_19m3']
             ) * 1e19**2 # [1/m^6]
+        run = True
     else:
         reacts = ["DD_n3He","DD_pT"]
         n_fuel2 = (
             dout['ions']['D']['ni_tot_19m3']/2
             )**2 * 1e19**2 # [1/m^6]
+        run = False
 
     # Initializes array to store data
     SigV = np.zeros(np.size(dout['Ti_keV']))
@@ -497,6 +499,7 @@ def _get_qfus(
     # Calculates the alpha-ion heating fraction
     frac_ai = _sv._get_ai_frac(
         dout=dout,
+        run=run,
         )
     #print(frac_ai)
 

@@ -63,6 +63,9 @@ def _get_sigmav(reaction, Ti_keV):
 
 def _get_ai_frac(
     dout=None,
+    fast_ion='He4',
+    E_fast=17.59*1.6021e-19/5, # [MJ] alpha energy from DT fusion
+    run=True,
     ):
     #n_fuel, ne, n_ash, n_imp, z_imp, mimp_amu, Te, nexp):
     '''
@@ -77,10 +80,10 @@ def _get_ai_frac(
     by collisions, and 
 
         x = E_alpha/E_crit
-    Details are given in Stix, Plasma Phys. 14 (1972) 367. The function F is derived from
+    Details are given in Stix, Plasma Phys. 14 (1972) 367, eqn 17. The function F is derived from
     Sivukhin's energy loss equation
 
-    INPUTS:  n_fuel  -- [array], [1e19 1/m^3] fuel ion density (assumes 50/50 DT)
+    (OLD) INPUTS:  n_fuel  -- [array], [1e19 1/m^3] fuel ion density (assumes 50/50 DT)
              ne      -- [array], [1e19 1/m^3] electron density
              n_ash   -- [array], [1e19 1/m^3] ash ion density
              n_imp   -- [array], [1e19 1/m^3] impurity ion density
@@ -96,10 +99,8 @@ def _get_ai_frac(
     frac_ai = np.zeros(len(dout['rhot']))
 
     # This only really applies to DT
-    if 'T' in dout['ions'].keys() and 'D' in dout['ions'].keys():
-        # Intializes constants
-        e = 1.6012e-19
-        E_alpha = 17.59*e/5 # [MJ] alpha energy from DT fusion
+    #if 'T' in dout['ions'].keys() and 'D' in dout['ions'].keys():
+    if run:
 
         # Calculates alpha heating coefficients [Stix, Plasma Phys. 14 (1972) 367], particularly Eqns 15, 17
         c_a = np.zeros(len(dout['rhot']))
@@ -113,20 +114,20 @@ def _get_ai_frac(
                 /
                 (
                     dout['ions'][ion]['M']
-                    /dout['ions']['He4']['M']
+                    /dout['ions'][fast_ion]['M']
                 )
             )
 
         # Calculates critical energy, [MJ]
         E_crit = (
             (dout['Te_keV']*1e3*cnt.e/1e6)
-            *(4*np.sqrt(dout['e']['M']/dout['ions']['He4']['M'])
+            *(4*np.sqrt(dout['e']['M']/dout['ions'][fast_ion]['M'])
             /(3*np.sqrt(np.pi)*c_a)
             )**(-2/3)
         )
 
         # Calculates fraction to alpha fusion energy
-        x = E_alpha/E_crit
+        x = E_fast/E_crit
 
         # Loop over radial grid points
         for i in np.arange(len(frac_ai)):
