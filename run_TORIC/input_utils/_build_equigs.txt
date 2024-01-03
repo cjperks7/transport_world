@@ -5,7 +5,7 @@ Step 1. Create an EFIT eqdsk file
 
 1.1 -> type: IDL in command line
 
-1.2 -> type: write_eqdsk, shot#, time#, tree='efit20'
+1.2 -> type: write_eqdsk, shot#, time#[ms], tree='efit20' (or others, i.e. 'analysis')
 
 Writes gfile and afile in cwd
 
