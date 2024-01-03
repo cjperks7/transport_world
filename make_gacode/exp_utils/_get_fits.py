@@ -47,7 +47,10 @@ def get_fits(
         time = np.load(f)/1e3 # [s]
         ne_t = np.load(f, allow_pickle=True)/1e19 # dim(t, rho); [1e19 m^-3]
         Te_t = np.load(f, allow_pickle=True)/1e3 # dim(t, rho); [keV]
-        Ti_t = np.load(f, allow_pickle=True)/1e3 # dim(t, rho); [keV]
+        try:
+            Ti_t = np.load(f, allow_pickle=True)/1e3 # dim(t, rho); [keV]
+        except:
+            Ti_t = Te_t.copy()
 
         ne_t = unumpy.nominal_values(np.array(ne_t))
         Te_t = unumpy.nominal_values(np.array(Te_t))

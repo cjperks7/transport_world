@@ -407,7 +407,7 @@ def _get_Te(
 
     # In case this diag is not available
     except:
-        print('Edge Thomson for ne not available')
+        print('Edge Thomson for Te not available')
 
 
     # ------------------
