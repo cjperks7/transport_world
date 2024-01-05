@@ -51,12 +51,14 @@ def reload_from_gacode(
 
     # Modules
     from omfit_classes import omfit_eqdsk, omfit_gapy
+    from scipy.interpolate import interp1d
 
     # Init
     dout = {}
 
     # Loads GACODE data
-    ga = omfit_gapy.OMFITgacode(ddata['path'])
+    ga = omfit_gapy.OMFITgacode(ddata['path']+ddata['ga'])
+    geq = omfit_eqdsk.OMFITgeqdsk(ddata['path']+ddata['geq'])
 
     # Input path
     dout['paths'] = {}
@@ -73,7 +75,8 @@ def reload_from_gacode(
     dout['Te_keV'] = ga['Te']
     dout['Ti_keV'] = ga['Ti_1']
     dout['ptot_Pa'] = ga['ptot']
-    dout['Zeff'] = ga['z_eff']
+    dout['Zeff'] = {}
+    dout['Zeff']['prof'] = ga['z_eff']
     dout['omega0_rad/s'] = ga['omega0']
     dout['vtor_m/s'] = ga['vtor_1']
     dout['vpol_m/s'] = ga['vpol_1']
@@ -156,11 +159,11 @@ def reload_from_gacode(
     dout['powers']['cxi']['prof_MW/m3'] = ga['qcxi']
 
     dout['powers']['par_beam'] = {}
-    dout['powers']['par_beam']['prof_MW/m3'] = ga['qpar_beam']
+    dout['powers']['par_beam']['prof_1/m3/s'] = ga['qpar_beam']
     dout['powers']['par_wall'] = {}
-    dout['powers']['par_wall']['prof_MW/m3'] = ga['qpar_wall']
+    dout['powers']['par_wall']['prof_1/m3/s'] = ga['qpar_wall']
     dout['powers']['mom'] = {}
-    dout['powers']['mom']['prof_MW/m3'] = ga['qmom']
+    dout['powers']['mom']['prof_N/m2'] = ga['qmom']
 
     # Magnetic geometry
     dout['polflux_Wb/rad'] = ga['polflux']
@@ -181,17 +184,23 @@ def reload_from_gacode(
     dout['jrf_MA/m2'] = ga['jrf']
     dout['jnb_MA/m2'] = ga['jnb']
     dout['vol_m3'] = ga['vol']
-    dout['Bt_T'] = ga['bt0'] # ??????????
+
+    sq_phin_g = np.sqrt(
+        geq['fluxSurfaces']['geo']['phi']
+        /geq['fluxSurfaces']['geo']['phi'][-1]
+        ) # sqrt of norm. toroidal flux
+    Bt_g = geq['fluxSurfaces']['avg']['Bt']          # [T], toroidal magnetic field
+    dout['Bt_T'] = interp1d(sq_phin_g, Bt_g)(dout['rhot'])
 
     # Scalars
-    dout['torfluxa_Wb/rad'] = '%0.7E'%(0) # ?????????
+    dout['torfluxa_Wb/rad'] = '%0.7E'%(-1*geq['fluxSurfaces']['geo']['phi'][-1]/(2*np.pi))
     dout['bcentr_T'] = '%0.7E'%(ga['BT_EXP'])
-    dout['rcentr_m'] = '%0.7E'%(0) # ?????????
+    dout['rcentr_m'] = '%0.7E'%(geq['RCENTR']) 
     dout['current_MA'] = '%0.7E'%(ga['IP_EXP'])
 
     # Documentation
     dout['t0_s'] = ga['TIME']
-    dout['device'] = 'UNKNOWN'
+    dout['device'] = 'CMOD'
     dout['shot'] = ga['SHOT']
 
     # Ouptut

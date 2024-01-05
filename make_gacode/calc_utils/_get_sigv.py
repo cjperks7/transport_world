@@ -7,6 +7,7 @@ when calcualting fusion power
 
 import numpy as np
 import warnings
+import scipy.constants as cnt
 
 def _get_sigmav(reaction, Ti_keV):
     '''
@@ -105,6 +106,8 @@ def _get_ai_frac(
         # Calculates alpha heating coefficients [Stix, Plasma Phys. 14 (1972) 367], particularly Eqns 15, 17
         c_a = np.zeros(len(dout['rhot']))
         for ion in dout['ions'].keys():
+            if ion in ['nion', 'name', 'charge', 'mass', 'itype']:
+                continue
             c_a += (
                 (
                     dout['ions'][ion]['ni_tot_19m3']
@@ -121,7 +124,7 @@ def _get_ai_frac(
         # Calculates critical energy, [MJ]
         E_crit = (
             (dout['Te_keV']*1e3*cnt.e/1e6)
-            *(4*np.sqrt(dout['e']['M']/dout['ions'][fast_ion]['M'])
+            *(4*np.sqrt(float(dout['e']['mass'])/dout['ions'][fast_ion]['M'])
             /(3*np.sqrt(np.pi)*c_a)
             )**(-2/3)
         )

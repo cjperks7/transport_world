@@ -9,7 +9,7 @@ Step 1. Create an EFIT eqdsk file
 
 Writes gfile and afile in cwd
 
-1.3 -> cp to directory you want to run TORIC5 on eofe7
+1.3 -> scp to directory you want to run TORIC5 on eofe7
 
 
 Step 2. Create an equigs file for TORIC5

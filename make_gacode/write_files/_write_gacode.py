@@ -21,10 +21,14 @@ __all__ = [
 
 def write_ga(
     dout=None,
+    name=None,
     ):
 
     # Opens an ASCII file to write in
-    f = open(dout['paths']['input']+'/input_t'+str(dout['t0_s'])+'s.gacode', 'w')
+    if name is None:
+        f = open(dout['paths']['input']+'/input_t'+str(dout['t0_s'])+'s.gacode', 'w')
+    else:
+        f=open(name, 'w')
 
     # Header
     f.write("# \n")
