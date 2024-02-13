@@ -30,7 +30,7 @@ def run_TGYRO(
     iterations = 20,            # number of solver iterations
     vectorRange = [0.3,0.8,4],  # [min(rhot), max(rhot), num. points]
     PredictionSet = [0,1,0],    # evolve [Te, Ti, ne]
-    TGLFsettings = 4,           # 1 -> SAT0, 2 -> SAT1, 3 -> SAT1geo, 4 -> SAT2, 5 -> SAT2em
+    TGLFsettings = 4,           # 1 -> SAT1 old, 2 -> SAT0, 3 -> SAT1geo, 4 -> SAT2, 5 -> SAT2em
     solver = {                  # numerics settings
         'step_jac':    1E-2,        # step length used for finite-differencing
         'step_max':    1E-2,        # maximum step of any Newton step
@@ -41,6 +41,7 @@ def run_TGYRO(
     physics_options = {         # physics settings
         'TargetType':2              # 1 -> fixed sources, 2 -> evolve e-i exchange, 3 -> evolve fusion, radiation, e-i exchange
         }, 
+    plot = True,
     ):
 
     # Finds input.gacode file if blank
@@ -48,7 +49,7 @@ def run_TGYRO(
         fgacode = folder + 'input.gacode'
 
     # Creates a PROFILES class
-    prof = PROFILESmodule.PROFILES_GACODE(gacode_file)
+    prof = PROFILESmodule.PROFILES_GACODE(fgacode)
     #prof.plot()
 
     # Creates a TGYRO class
@@ -71,4 +72,8 @@ def run_TGYRO(
     tgyro.read(label=subfolder)
 
     # Plots results
-    tgyro.plotRun(labels=[subfolder])
+    if plot:
+        tgyro.plotRun(labels=[subfolder])
+
+    # Output
+    return tgyro
