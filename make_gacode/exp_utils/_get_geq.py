@@ -142,6 +142,10 @@ def get_harm_res(
     # B-field
     Bt = gfile['AuxQuantities']['Bt'] # [T]
 
+    # Get rid of helicity sign convenctions
+    if np.max(Bt) <0:
+        Bt *= -1
+
     # Initializes output
     Zout = Z.copy()
     Rout = np.zeros(len(Zout))

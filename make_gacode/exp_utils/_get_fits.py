@@ -9,7 +9,6 @@ cjperks
 '''
 
 import numpy as np
-from uncertainties import unumpy
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 from transport_world.make_gacode import read_tokamak as rTok
@@ -37,59 +36,35 @@ def get_fits(
     dt = None,
     plt_all = None,
     plt_coor='rhot',
+    source = 'quickfit',
     ):
     dout['paths']['kin'] = path_kin
     dout['t0_s'] = t0
 
-    # Opens .npy file of saved profiles from QuickFit
-    with open(path_input+path_kin, 'rb') as f: 
-        rho_t = np.load(f) # norm. sq. tor. flux
-        time = np.load(f)/1e3 # [s]
-        ne_t = np.load(f, allow_pickle=True)/1e19 # dim(t, rho); [1e19 m^-3]
-        Te_t = np.load(f, allow_pickle=True)/1e3 # dim(t, rho); [keV]
-        try:
-            Ti_t = np.load(f, allow_pickle=True)/1e3 # dim(t, rho); [keV]
-        except:
-            Ti_t = Te_t.copy()
 
-        ne_t = unumpy.nominal_values(np.array(ne_t))
-        Te_t = unumpy.nominal_values(np.array(Te_t))
-        Ti_t = unumpy.nominal_values(np.array(Ti_t))
+    if source == 'quickfit':
+        dout = _read_quickfit(
+            dout=dout,
+            path_input=path_input,
+            path_kin=path_kin,
+            t0=t0,
+            dt=dt,
+            )
 
-    # Finds the time slice of interest
-    t_ind = np.where((time >= t0-dt) & (time <= t0+dt))
-
-    # Takes kinetic profile data at time slice of interest
-    ne = ne_t[t_ind].T # dim(rho, t); [1e19 m^-3]
-    Te = Te_t[t_ind].T # dim(rho,t); [keV]
-    Ti = Ti_t[t_ind].T # dim(rho,t); [keV]
-
-    # Removes negative values from fits
-    #Te[Te<0.2] = 0.2
-    #Ti[Ti<0.2] = 0.2
-    #ne[ne<0.5] = 0.5
-
-    # Interpolates onto rho = 0->1
-    ne = interp1d(rho_t, ne, axis = 0)(dout['rhot'])
-    Te = interp1d(rho_t, Te, axis = 0)(dout['rhot'])
-
-    ### NOTE: I found an error under /home/sciortino/quickfit/CMOD/fetch_data.py
-    # Assumes HIREX's rho = rho_t, but it's actually psin
-    #Ti = interp1d(rho_t, Ti, axis = 0)(dout['rhot'])
-    Ti = interp1d(rho_t, Ti, axis=0)(dout['rhop']**2)
-
-    # Takes the average in time
-    dout['ne_19m3'] = np.mean(ne, axis=-1)
-    dout['Te_keV'] = np.mean(Te, axis=-1)
-    dout['Ti_keV'] = np.mean(Ti, axis=-1)
+    elif source == 'profiletools':
+        dout = _read_profiletools(
+            dout=dout,
+            path_input=path_input,
+            path_kin=path_kin,
+            )
 
     if plt_all:
         _plot(
             dout = dout,
             shot = shot,
-            ne = ne,
-            Te = Te,
-            Ti = Ti,
+            ne = None,
+            Te = None,
+            Ti = None,
             t0=t0,
             dt=dt,
             plt_coor=plt_coor,
@@ -139,6 +114,119 @@ def get_imprad(
         else:
             return ddata, nz_cm3*rescl
 
+
+##########################################################
+#
+#                     Utilities
+#
+##########################################################
+
+# Reads fit data prepared by QuickFit within OMFIT
+def _read_quickfit(
+    dout=None,
+    path_input=None,
+    path_kin=None,
+    t0=None,
+    dt=None,
+    ):
+
+    # Modules
+    from uncertainties import unumpy
+
+    # Opens .npy file of saved profiles from QuickFit
+    with open(path_input+path_kin, 'rb') as f: 
+        rho_t = np.load(f) # norm. sq. tor. flux
+        time = np.load(f)/1e3 # [s]
+        ne_t = np.load(f, allow_pickle=True)/1e19 # dim(t, rho); [1e19 m^-3]
+        Te_t = np.load(f, allow_pickle=True)/1e3 # dim(t, rho); [keV]
+        try:
+            Ti_t = np.load(f, allow_pickle=True)/1e3 # dim(t, rho); [keV]
+            copied = False
+        except:
+            Ti_t = Te_t.copy()
+            copied = True
+
+        ne_t = unumpy.nominal_values(np.array(ne_t))
+        Te_t = unumpy.nominal_values(np.array(Te_t))
+        Ti_t = unumpy.nominal_values(np.array(Ti_t))
+
+    # Finds the time slice of interest
+    t_ind = np.where((time >= t0-dt) & (time <= t0+dt))
+
+    # Takes kinetic profile data at time slice of interest
+    ne = ne_t[t_ind].T # dim(rho, t); [1e19 m^-3]
+    Te = Te_t[t_ind].T # dim(rho,t); [keV]
+    Ti = Ti_t[t_ind].T # dim(rho,t); [keV]
+
+    # Removes negative values from fits
+    #Te[Te<0.2] = 0.2
+    #Ti[Ti<0.2] = 0.2
+    #ne[ne<0.5] = 0.5
+
+    # Interpolates onto rho = 0->1
+    ne = interp1d(rho_t, ne, axis = 0)(dout['rhot'])
+    Te = interp1d(rho_t, Te, axis = 0)(dout['rhot'])
+
+    if copied:
+        Ti = interp1d(rho_t, Ti, axis = 0)(dout['rhot'])
+    else:
+        ### NOTE: I found an error under /home/sciortino/quickfit/CMOD/fetch_data.py
+        # Assumes HIREX's rho = rho_t, but it's actually psin
+        #Ti = interp1d(rho_t, Ti, axis = 0)(dout['rhot'])
+        Ti = interp1d(rho_t, Ti, axis=0)(dout['rhop']**2)
+
+    # Takes the average in time
+    dout['ne_19m3'] = np.mean(ne, axis=-1)
+    dout['Te_keV'] = np.mean(Te, axis=-1)
+    dout['Ti_keV'] = np.mean(Ti, axis=-1)
+
+    # Output
+    return dout
+
+# Reads fit data prepared by profiletools
+def _read_profiletools(
+    dout=None,
+    path_input=None,
+    path_kin=None,
+    ):
+
+    # Modules
+    import netCDF4    
+
+    # Assumes files are in the form
+    #   path_input + '/ne' + path_kin
+    #   path_input + '/Te' + path_kin
+    ne = netCDF4.Dataset(path_input+'/ne'+path_kin, 'r')
+    Te = netCDF4.Dataset(path_input+'/Te'+path_kin, 'r')
+
+    # Radial coordinate
+    if 'r/a' in Te.variables.keys():
+        rad_Te = dout['rmin_m']/dout['rmin_m'][-1]
+        key_Te = 'r/a'
+
+    if 'r/a' in ne.variables.keys():
+        rad_ne = dout['rmin_m']/dout['rmin_m'][-1]
+        key_ne = 'r/a'
+
+    # Interpolates onto grid
+    dout['ne_19m3'] = interp1d(
+        np.asarray(ne.variables[key_ne][:]),
+        np.asarray(ne.variables['n_e'])*10,
+        bounds_error=False,
+        fill_value=(float(ne.variables['n_e'][0])*10, 0)
+        )(rad_ne)
+    dout['Te_keV'] = interp1d(
+        np.asarray(Te.variables[key_Te][:]),
+        np.asarray(Te.variables['T_e']),
+        bounds_error=False,
+        fill_value=(float(Te.variables['T_e'][0]), 0)
+        )(rad_Te)
+    
+    # profiletools doesn't do Ti
+    dout['Ti_keV'] = dout['Te_keV'].copy()
+
+    # Output
+    return dout
 
 ##########################################################
 #
