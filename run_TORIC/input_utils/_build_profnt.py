@@ -41,7 +41,8 @@ def build_profnt(
             np.array([0]), # [cm^-3], dim(nrho,)
             np.array([0]) # [cm^-3], dim(nrho,)
             ]
-        }
+        },
+    name = None,
     ):
 
     # Reads input.gacode file
@@ -62,7 +63,10 @@ def build_profnt(
     nions = len(ions)
 
     # Opens an ASCII file to write in
-    f = open(in_path+'/profnt_TORIC.dat', 'w')
+    if name is None:
+        f = open(in_path+'/profnt_TORIC.dat', 'w')
+    else:
+        f = open(name, 'w')
 
     # Header
     f.write(
