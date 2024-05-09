@@ -16,6 +16,7 @@ from scipy.interpolate import interp1d
 
 __all__ = [
     'get_line_spectra',
+    'get_PEC'
     ]
 
 #########################################################
@@ -24,6 +25,55 @@ __all__ = [
 #
 #########################################################
 
+# Get PEC curve
+def get_PEC(
+    # Ion data
+    sp = None,
+    cs = None,
+    path_PEC = None,
+    # Plasma data
+    Te_eV = None, # [eV], dim(nrho,), electron temperature
+    ne_cm3 = None, # [cm^-3], dim(nrho,), electron density
+    # Line data
+    lamb0 = None,   # [AA], central wavelength
+    dlamb = None,   # [AA], interval to search over
+    ):
+
+    # Obtains file location of PECs
+    if path_PEC is None:
+        path_PEC = _get_PEC_loc(
+            ion=sp,
+            cs=cs,
+            )
+
+    # Reads ADF15
+    trs = aurora.read_adf15(path_PEC)
+
+    # Line of interest
+    if dlamb is None:
+        dlamb = 0.01*lamb0
+    inds = np.where(
+        (trs['lambda [A]'] >= lamb0-dlamb)
+        & (trs['lambda [A]'] <= lamb0+dlamb)
+        )[0]
+
+    out = np.zeros((len(Te_eV), 3)) # dim(nrho, ion/exc/rec)
+
+    # Loop over PECs
+    for ind in inds:
+        if trs['type'][ind] in ['ion', 'ioniz', 'ionis']:
+            xx = 0
+        elif trs['type'][ind] in ['exc', 'excit']:
+            xx = 1
+        elif trs['type'][ind] in ['rec', 'recom', 'drsat']:
+            xx = 2
+
+        out[:,xx] += 10**trs['log10 PEC fun'][ind].ev(np.log10(ne_cm3), np.log10(Te_eV))
+
+    # Output
+    return out
+
+# Full spectrum forward modeling
 def get_line_spectra(
     ddiag = None,   # Dictionary storing diagnostic information
     fgacode = None, # Background kinetic profiles

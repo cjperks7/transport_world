@@ -17,6 +17,7 @@ plt.rcParams.update({'font.size': 16})
 
 __all__ = [
     'calc_imp_dens',
+    'get_ion_bal'
     ]
 
 ###########################################
@@ -25,6 +26,91 @@ __all__ = [
 #
 ###########################################
 
+# Gets charge state distribution assuming no transport
+def get_ion_bal(
+    sp = None,  # Ion species
+    Te_eV = None, # [eV], Electron temperature
+    ne_cm3 = None, # [cm3], Electron density
+    files = None,
+    ):
+    
+    # Collects derived rate data for impurity ion, 
+    # (scd-> ionization rates, acd-> recombination rates, ccd->charge exchange rates) 
+    if files is None:
+        atom_data = aurora.atomic.get_atom_data(sp,['scd','acd'])
+    else:
+        atom_data = aurora.atomic.get_atom_data(
+            sp,
+            {'acd': files['acd'], 'scd': files['scd']}
+            )
+
+    _, fz = aurora.atomic.get_frac_abundances(
+        atom_data,
+        ne_cm3, Te_eV,
+        plot=False
+        )
+
+    # Output, dim(nrho, ncharge)
+    return fz
+
+# Gets effective ionization/recombination rate data
+def get_ion_rates(
+    sp = None,  # Ion species
+    Te_eV = None, # [eV], Electron temperature
+    files = None, # --> option to use alternative acd/scd files
+    ):
+    
+    # Collects derived rate data for impurity ion, 
+    # (scd-> ionization rates, acd-> recombination rates, ccd->charge exchange rates) 
+    if files is None:
+        atom_data = aurora.atomic.get_atom_data(sp,['scd','acd'])
+    else:
+        atom_data = aurora.atomic.get_atom_data(
+            sp,
+            {'acd': files['acd'], 'scd': files['scd']}
+            )
+
+    # Loads the ionization/recombination rate data
+    out = aurora.atomic.get_cs_balance_terms(
+        atom_data,
+        ne_cm3 = np.ones_like(Te_eV)*1e14,
+        Te_eV = Te_eV,
+        include_cx = False,
+        metastables=False,
+        )
+
+    # Output, (ioniz, recomb), [cm^3/s]
+    return out[1]/1e14, out[2]/1e14
+
+
+# Gets cooling curves
+def get_cooling_curve(
+    sp = None,
+    Te_eV = None,
+    ne_cm3 = None,
+    ):
+
+    # Collects rate data
+    atom_data = aurora.atomic.get_atom_data(
+        sp, ['plt', 'prb']
+        )
+
+    logTe = np.log10(Te_eV)
+    logne = np.log10(ne_cm3)
+
+    # Cooling curves, [W/atom]
+    pltne = aurora.atomic.interp_atom_prof(
+        atom_data["plt"], logne, logTe, x_multiply=True
+        )
+    prbne = aurora.atomic.interp_atom_prof(
+        atom_data["prb"], logne, logTe, x_multiply=True
+        )
+    ptot = pltne + prbne
+
+    # Output, [W/atom], dim(nrho, ncharge)
+    return pltne, prbne, ptot
+
+# Transport modeling of impurity density
 def calc_imp_dens(
     dmodel = None,
     plt_all = None,
