@@ -40,7 +40,7 @@ def get_hirexsr(
 
     # Defaults
     if quants is None:
-        quants = ['int', 'spectra', 'moments']
+        quants = ['int', 'spectra', 'moments', 'profiles']
 
     # Gets intensity time traces
     if 'int' in quants:
@@ -57,6 +57,12 @@ def get_hirexsr(
     # Gets moments of the signal
     if 'moments' in quants:
         dout = _get_moments(
+            dout=dout,
+            )
+
+    # Get inversion profiles
+    if 'profiles' in quants:
+        dout = _get_profs(
             dout=dout,
             )
 
@@ -184,12 +190,135 @@ def plt_hirexsr(
             ax3[ll].set_ylim(0,1)
             ax3[ll].grid('on')
 
+    # Plots emissivity ratio
+    if 'profs' in list(dout.keys()) and dplt_mom is not None:
+        fig4, ax4 = plt.subplots(1, len(dout['profs'].keys()))
+        fig4.tight_layout(pad=1.0)
+
+        # Loop over lines
+        for ll, line in enumerate(list(dout['profs'].keys())):
+            # Time window to average data
+            ind1 = np.where(
+                (dout['profs'][line]['t_s'] >= dplt_mom['t1'][0])
+                & (dout['profs'][line]['t_s'] <= dplt_mom['t1'][-1])
+                )[0]
+            ind2 = np.where(
+                (dout['profs'][line]['t_s'] >= dplt_mom['t2'][0])
+                & (dout['profs'][line]['t_s'] <= dplt_mom['t2'][-1])
+                )[0]
+
+            # Counts data
+            data1 = np.mean(
+                dout['profs'][line]['emis']['data'][:,ind1], 
+                axis=-1
+                ) # [], dim(nrho,)
+            data2 = np.mean(
+                dout['profs'][line]['emis']['data'][:,ind2], 
+                axis=-1
+                ) # [], dim(nrho,)
+
+            psin1 = np.mean(dout['profs'][line]['psin'][:,ind1], axis=-1) # [], dim(nrho,)
+            psin2 = np.mean(dout['profs'][line]['psin'][:,ind2], axis=-1) # [], dim(nrho,)
+
+            ax4[ll].plot(
+                psin1,
+                1- (data2/data1),
+                'r*'
+                )
+
+            ax4[ll].set_xlabel(r'$\sqrt{\Psi_n}$')
+            ax4[ll].set_ylabel('Emissivity reduction')
+            ax4[ll].set_title(line)
+            ax4[ll].set_ylim(0,1)
+            ax4[ll].grid('on')
+
 
 ###########################################
 #
 #               Utilities
 #
 ###########################################
+
+# Gets inversion profiles (emissivity, Ti, vtor) v. psin
+def _get_profs(
+    dout=None,
+    ):
+
+    # Initializes output
+    dout['profs'] = {}
+
+    # Available data
+    lines = ['W', 'X', 'Z', 'LYA1', 'J', 'MO4D']
+
+    # Loop over lines
+    for line in lines:
+        if line in ['W', 'X', 'Z']:
+            bnch = 'HELIKE'
+        elif line in ['LYA1', 'J', 'MO4D']:
+            bnch = 'HLIKE'
+
+        # MDSplus tree
+        _, branchNode = _cmod_tree(dout=dout, branch=bnch)
+
+        try:
+            # MDSplus node
+            profs_nd = branchNode.getNode('profiles.'+line+':pro')
+
+            # get time basis
+            all_times = branchNode.getNode(
+                'profiles.'+line+':rho'
+                ).dim_of(0).data() # [s], dim(t,)
+
+            dout['profs'][line] = {}
+            dout['profs'][line]['emis'] = {}
+            dout['profs'][line]['Ti'] = {}
+            dout['profs'][line]['vtor'] = {}
+
+            mask = all_times > -1
+            dout['profs'][line]['t_s'] = all_times[mask]
+
+            # Obtain inversion data
+            dout['profs'][line]['emis']['data'] = branchNode.getNode(
+                'profiles.'+line+':pro'
+                ).data()[0,mask,:].T # dim(nchan,t)
+            dout['profs'][line]['Ti']['data'] = branchNode.getNode(
+                'profiles.'+line+':pro'
+                ).data()[3,mask,:].T # [keV], dim(nchan,t)
+            dout['profs'][line]['vtor']['data'] = branchNode.getNode(
+                'profiles.'+line+':pro'
+                ).data()[1,mask,:].T # [kHz], dim(nchan,t)
+
+            # Obtain inversion errorbar data
+            dout['profs'][line]['emis']['err'] = branchNode.getNode(
+                'profiles.'+line+':proerr'
+                ).data()[0,mask,:].T # dim(nchan,t)
+            dout['profs'][line]['Ti']['err'] = branchNode.getNode(
+                'profiles.'+line+':proerr'
+                ).data()[3,mask,:].T # [keV], dim(nchan,t)
+            dout['profs'][line]['vtor']['err'] = branchNode.getNode(
+                'profiles.'+line+':proerr'
+                ).data()[1,mask,:].T # [kHz], dim(nchan,t)
+
+            # Radial domain
+            dout['profs'][line]['psin'] = branchNode.getNode(
+                'profiles.'+line+':rho'
+                ).data()[mask,:].T # [], dim(chan,t)
+
+            # Error check
+            if dout['profs'][line]['Ti']['err'].shape[0] > dout['profs'][line]['psin'].shape[0]:
+                ss = dout['profs'][line]['psin'].shape[0]
+                dout['profs'][line]['emis']['data'] = dout['profs'][line]['emis']['data'][:ss,:]
+                dout['profs'][line]['emis']['err'] = dout['profs'][line]['emis']['err'][:ss,:]
+                dout['profs'][line]['Ti']['data'] = dout['profs'][line]['Ti']['data'][:ss,:]
+                dout['profs'][line]['Ti']['err'] = dout['profs'][line]['Ti']['err'][:ss,:]
+                dout['profs'][line]['vtor']['data'] = dout['profs'][line]['vtor']['data'][:ss,:]
+                dout['profs'][line]['vtor']['err'] = dout['profs'][line]['vtor']['err'][:ss,:]
+
+        except:
+            print('No inversion data for line: '+line)
+
+    # Output
+    return dout
 
 # Gets moments time traces v. psin
 def _get_moments(

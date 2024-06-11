@@ -23,7 +23,21 @@ tht = 0
 ddata = rTok.get_hirexsr(
     shot=shot,
     tht=tht,
-    quants = ['int', 'spectra', 'moments'],
+    quants = ['int', 'spectra', 'moments', 'profiles'],
     plt_all = True,
     plt_ch = 7,
+    )
+
+from transport_world.plot_utils import plt_slider
+
+line = 'LYA1'
+plt_slider(
+    xxx=ddata['profs'][line]['psin'][:,0],
+    yyy=ddata['profs'][line]['t_s'],
+    dzzz=ddata['profs'][line]['emis']['data'].T,
+    xxlabel=r"$\rho_p$",
+    yylabel="t [s]",
+    zzlabel=r"Counts [arb]",
+    plt_sum=False,
+    yscale='linear',
     )
