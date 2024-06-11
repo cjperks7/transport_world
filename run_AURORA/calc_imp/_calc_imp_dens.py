@@ -32,6 +32,7 @@ def get_ion_bal(
     Te_eV = None, # [eV], Electron temperature
     ne_cm3 = None, # [cm3], Electron density
     files = None,
+    plot = False,
     ):
     
     # Collects derived rate data for impurity ion, 
@@ -47,7 +48,7 @@ def get_ion_bal(
     _, fz = aurora.atomic.get_frac_abundances(
         atom_data,
         ne_cm3, Te_eV,
-        plot=False
+        plot=plot
         )
 
     # Output, dim(nrho, ncharge)
