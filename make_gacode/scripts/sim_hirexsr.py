@@ -30,12 +30,12 @@ ddata = rTok.get_hirexsr(
 
 from transport_world.plot_utils import plt_slider
 
-line = 'LYA1'
+line = 'Z'
 plt_slider(
     xxx=ddata['profs'][line]['psin'][:,0],
     yyy=ddata['profs'][line]['t_s'],
     dzzz=ddata['profs'][line]['emis']['data'].T,
-    xxlabel=r"$\rho_p$",
+    xxlabel=r"$\Psi_n$",
     yylabel="t [s]",
     zzlabel=r"Counts [arb]",
     plt_sum=False,

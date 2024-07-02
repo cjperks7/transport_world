@@ -184,7 +184,7 @@ def plt_hirexsr(
                 'r*'
                 )
 
-            ax3[ll].set_xlabel(r'$\sqrt{\Psi_n}$')
+            ax3[ll].set_xlabel(r'$Psi_n$')
             ax3[ll].set_ylabel('Brightness reduction')
             ax3[ll].set_title(line)
             ax3[ll].set_ylim(0,1)
@@ -261,9 +261,6 @@ def _get_profs(
         _, branchNode = _cmod_tree(dout=dout, branch=bnch)
 
         try:
-            # MDSplus node
-            profs_nd = branchNode.getNode('profiles.'+line+':pro')
-
             # get time basis
             all_times = branchNode.getNode(
                 'profiles.'+line+':rho'
@@ -280,29 +277,29 @@ def _get_profs(
             # Obtain inversion data
             dout['profs'][line]['emis']['data'] = branchNode.getNode(
                 'profiles.'+line+':pro'
-                ).data()[0,mask,:].T # dim(nchan,t)
+                ).data()[0,mask,:].T # dim(nrho,t)
             dout['profs'][line]['Ti']['data'] = branchNode.getNode(
                 'profiles.'+line+':pro'
-                ).data()[3,mask,:].T # [keV], dim(nchan,t)
+                ).data()[3,mask,:].T # [keV], dim(nrho,t)
             dout['profs'][line]['vtor']['data'] = branchNode.getNode(
                 'profiles.'+line+':pro'
-                ).data()[1,mask,:].T # [kHz], dim(nchan,t)
+                ).data()[1,mask,:].T # [kHz], dim(nrho,t)
 
             # Obtain inversion errorbar data
             dout['profs'][line]['emis']['err'] = branchNode.getNode(
                 'profiles.'+line+':proerr'
-                ).data()[0,mask,:].T # dim(nchan,t)
+                ).data()[0,mask,:].T # dim(nrho,t)
             dout['profs'][line]['Ti']['err'] = branchNode.getNode(
                 'profiles.'+line+':proerr'
-                ).data()[3,mask,:].T # [keV], dim(nchan,t)
+                ).data()[3,mask,:].T # [keV], dim(nrho,t)
             dout['profs'][line]['vtor']['err'] = branchNode.getNode(
                 'profiles.'+line+':proerr'
-                ).data()[1,mask,:].T # [kHz], dim(nchan,t)
+                ).data()[1,mask,:].T # [kHz], dim(nrho,t)
 
             # Radial domain
             dout['profs'][line]['psin'] = branchNode.getNode(
                 'profiles.'+line+':rho'
-                ).data()[mask,:].T # [], dim(chan,t)
+                ).data()[mask,:].T # [], dim(nrho,t); rho = norm. pol. flux
 
             # Error check
             if dout['profs'][line]['Ti']['err'].shape[0] > dout['profs'][line]['psin'].shape[0]:
@@ -354,7 +351,7 @@ def _get_moments(
         ch_num = np.arange(maxChan) + 1
 
         data = mom_nd.data()[:,mask,:]
-        psin = mom_nd.dim_of(0).data()[mask,:] 
+        psin = mom_nd.dim_of(0).data()[mask,:] # rho = norm. pol. flux
 
         # Stores data
         dout['mom'][line] = {}
