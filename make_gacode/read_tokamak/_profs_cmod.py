@@ -215,6 +215,216 @@ def _get_Ti(
     except:
         print('HIREXSR Lya1 line for Ti not available')
 
+    # ------------------
+    # Obtains Active Charge Exchange data
+    # ------------------
+    tree = MDSplus.Tree('dnb', shot)
+    dTi['CXR_Active_Tor_in'] = {}
+
+    try:
+        # Obtain ion temp data
+        dTi['CXR_Active_Tor_in']['val_keV'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.active.tor_in:temp'
+            ).data().T # [keV], dim(nchan,t)
+
+        # Radial domain
+        map_R = tree.getNode(
+            r'\dnb::top.mit_cxrs.results:iws_map_rad'
+            ).data() # [], dim(t,nchan)
+        dTi['CXR_Active_Tor_in']['r_m'] = np.zeros(dTi['CXR_Active_Tor_in']['val_keV'].shape) 
+
+        # Time domain
+        map_t = tree.getNode(
+            r'\dnb::top.mit_cxrs.results:iws_map_rad'
+            ).dim_of(1).data() # [s], dim(t,)
+        dTi['CXR_Active_Tor_in']['t_s'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.active.tor_in:temp'
+            ).dim_of(1).data() # [s], dim(t,)
+
+        # Remaps from HFS to LFS
+        for tt, tval in dTi['CXR_Active_Tor_in']['t_s']:
+            tind = np.where(map_t == tval)[0]
+            dTi['CXR_Active_Tor_in']['r_m'][:,tt] = map_R[tt,:]
+
+    # In case this diag is not available
+    except:
+        print('Active CXR Toroidal in for Ti not available')
+
+    # ------------------
+    # Obtains Poloidal Active Charge Exchange data
+    # ------------------
+    dTi['CXR_Active_Pol'] = {}
+
+    try:
+        # Obtain ion temp data
+        dTi['CXR_Active_Pol']['val_keV'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.active.poloidal:temp'
+            ).data().T # [keV], dim(nchan,t)
+
+        # Radial domain
+        dTi['CXR_Active_Pol']['r_m'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.active.poloidal:temp'
+            ).dim_of(0).data().T # [], dim(mchan,t)
+
+        # Time domain
+        dTi['CXR_Active_Pol']['t_s'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.active.poloidal:temp'
+            ).dim_of(1).data() # [s], dim(t,)
+
+    # In case this diag is not available
+    except:
+        print('Active CXR Poloidal for Ti not available')
+
+    # ------------------
+    # Obtains Toroidal Active Charge Exchange data
+    # ------------------
+    dTi['CXR_Active_Tor_out'] = {}
+
+    try:
+        # Obtain ion temp data
+        dTi['CXR_Active_Tor_out']['val_keV'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.active.tor_out:temp'
+            ).data().T # [keV], dim(nchan,t)
+
+        # Radial domain
+        dTi['CXR_Tor']['r_m'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.active.tor_out:temp'
+            ).dim_of(0).data().T # [], dim(mchan,t)
+
+        # Time domain
+        dTi['CXR_Tor']['t_s'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.active.tor_out:temp'
+            ).dim_of(1).data() # [s], dim(t,)
+
+    # In case this diag is not available
+    except:
+        print('Active CXR Toroidal out for Ti not available')
+
+    # ------------------
+    # Obtains Passive Charge Exchange data
+    # ------------------
+    dTi['CXR_Passive_Pol'] = {}
+
+    try:
+        # Obtain ion temp data
+        dTi['CXR_Passive_Pol']['val_keV'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.passive.poloidal:bv_temp'
+            ).data().T # [keV], dim(nchan,t)
+
+        # Radial domain
+        dTi['CXR_Passive_Pol']['r_m'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.passive.poloidal:bv_temp'
+            ).dim_of(0).data() # [], dim(mchan,)
+
+        # Time domain
+        dTi['CXR_Passive_Pol']['t_s'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.passive.poloidal:bv_temp'
+            ).dim_of(1).data() # [s], dim(t,)
+
+    # In case this diag is not available
+    except:
+        print('Passive CXR Poloidal for Ti not available')
+
+    # ------------------
+    # Obtains Passive Charge Exchange Poloidal Background data
+    # ------------------
+    dTi['CXR_Passive_Pol_Bck'] = {}
+
+    try:
+        # Obtain ion temp data
+        dTi['CXR_Passive_Pol_Bck']['val_keV'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.passive.pol_bck:bv_temp'
+            ).data().T # [keV], dim(nchan,t)
+
+        # Radial domain
+        dTi['CXR_Passive_Pol_Bck']['r_m'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.passive.pol_bck:bv_temp'
+            ).dim_of(0).data() # [], dim(mchan,)
+
+        # Time domain
+        dTi['CXR_Passive_Pol_Bck']['t_s'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.passive.pol_bck:bv_temp'
+            ).dim_of(1).data() # [s], dim(t,)
+
+    # In case this diag is not available
+    except:
+        print('Passive CXR Poloidal Background for Ti not available')
+
+    # ------------------
+    # Obtains Passive Charge Exchange Toroidal data
+    # ------------------
+    dTi['CXR_Passive_Tor_out'] = {}
+
+    try:
+        # Obtain ion temp data
+        dTi['CXR_Passive_Tor_out']['val_keV'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.passive.tor_out:bv_temp'
+            ).data().T # [keV], dim(nchan,t)
+
+        # Radial domain
+        dTi['CXR_Passive_Tor_out']['r_m'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.passive.tor_out:bv_temp'
+            ).dim_of(0).data() # [], dim(mchan,)
+
+        # Time domain
+        dTi['CXR_Passive_Tor_out']['t_s'] = tree.getNode(
+            r'\dnb::top.mit_cxrs.results.passive.tor_out:bv_temp'
+            ).dim_of(1).data() # [s], dim(t,)
+
+    # In case this diag is not available
+    except:
+        print('Passive CXR Toroidal for Ti not available')
+
+    # ------------------
+    # Obtains UT Charge Exchange Poloidal data
+    # ------------------
+    dTi['UTCXR_Pol'] = {}
+
+    try:
+        # Obtain ion temp data
+        dTi['UTCXR_Pol']['val_keV'] = tree.getNode(
+            r'\dnb::top.roper.results.b5.temp_pol'
+            ).data() # [keV], dim(nchan,t)
+
+        # Radial domain
+        dTi['UTCXR_Pol']['r_m'] = tree.getNode(
+            r'\dnb::top.roper.results.b5.temp_pol_r'
+            ).data() # [], dim(mchan,t)
+
+        # Time domain
+        dTi['UTCXR_Pol']['t_s'] = tree.getNode(
+            r'\dnb::top.roper.results.b5.temp_pol_r'
+            ).dim_of(0).data() # [s], dim(t,)
+
+    # In case this diag is not available
+    except:
+        print('UTCXR Poloidal for Ti not available')
+
+    # ------------------
+    # Obtains UT Charge Exchange Toroidal data
+    # ------------------
+    dTi['UTCXR_Tor'] = {}
+
+    try:
+        # Obtain ion temp data
+        dTi['UTCXR_Tor']['val_keV'] = tree.getNode(
+            r'\dnb::top.roper.results.b5.temp_tor'
+            ).data() # [keV], dim(nchan,t)
+
+        # Radial domain
+        dTi['UTCXR_Tor']['r_m'] = tree.getNode(
+            r'\dnb::top.roper.results.b5.temp_tor_r'
+            ).data() # [], dim(mchan,t)
+
+        # Time domain
+        dTi['UTCXR_Tor']['t_s'] = tree.getNode(
+            r'\dnb::top.roper.results.b5.temp_tor_r'
+            ).dim_of(0).data() # [s], dim(t,)
+
+    # In case this diag is not available
+    except:
+        print('UTCXR Toroidal for Ti not available')
+
 
     # Output
     return dTi
