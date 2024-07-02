@@ -15,9 +15,9 @@ python2.7 versions of profiletools, eqtools, and gptools can be found under:
 /home/sciortino/usr/pythonmodules/
 
 To do fits using the GUI:
-    source /home/cjperks/activate_profiles2             -> python2.7 environment
-    cd /home/markchil/codes/profiletools/profiletools   -> source code
-    /home/markchil/codes/profiletools/bin/gpfit         -> launch GUI
+    . /home/cjperks/activate_profiles2              -> python2.7 environment
+    cd /home/cjperks/profiletools/profiletools      -> source code
+    /home/cjperks/profiletools/bin/gpfit            -> launch GUI
         NOTE: seems to source code from
             /home/markchil/codes/
 
@@ -25,3 +25,29 @@ Apparently, as of May 2019, these are the recommended Gibbs fit parameters
 gibbs_params={'sigma_min':0.0, 'sigma_max':10.0,
     'l1_mean':1.0, 'l2_mean':0.5, 'lw_mean':0.01, 'x0_mean':1.0,
     'l1_sd':3.0, 'l2_sd':3.0, 'lw_sd':0.1, 'x0_sd':0.05}
+
+
+How to use the GPfit GUI:
+1. Data page
+    Add shot
+    Add signal
+    Add coordinate
+    Add diag
+    Add time window to average over
+
+    Load Data
+    Plot Data --> Will get error if diag was unavailable
+
+2. Kernel page
+
+3. Fit page
+    Outlier Rejection --
+    Plot indices --> index of points
+    Remove points --> list of point indices to exclude
+
+    Fit Data
+    Save Fit --> writes fit to NetCDF
+        NOTE: one NetCDF file per profile (ne/Te/Ti)
+
+4. Plot
+    Plot limits
