@@ -22,4 +22,4 @@ Step 2. Create an equigs file for TORIC5
 
 2.3 -> Generate TORIC5 equilibrium file with geqxpl utility
 
-!geqxpl @equigs_gen/g_filename=g1140221013.01000/equigs_filename=equigs.dat
+!/home/software/psfc/local/bin/geqxpl @equigs_gen/g_filename=g1140221013.01000/equigs_filename=equigs.dat
