@@ -116,6 +116,9 @@ def calc_imp_dens(
     dmodel = None,
     plt_all = None,
     plt_cs = None,
+    # Extra
+    scaleT = 1,
+    scalen = 1,
     ):
 
     # Reads in magnetic equilibrium and kinetic profiles
@@ -131,6 +134,24 @@ def calc_imp_dens(
             dmodel['paths']['fgacode'],
             )
         )
+
+    # If user just wants ionization balance
+    if 'frac_abund' in dmodel['options']:
+        fz = get_ion_bal(
+            sp = dmodel['imp']['sym'],  # Ion species
+            Te_eV = scaleT*inputgacode['Te']*1e3, # [eV], Electron temperature
+            ne_cm3 = scalen*inputgacode['ne']*1e13, # [cm3], Electron density
+            files = {'acd': dmodel['AURORA']['acd'], 'scd': dmodel['AURORA']['scd']},
+            plot = plt_all,
+            )
+        return {
+            'rhop_fm': np.sqrt(inputgacode['polflux']/inputgacode['polflux'][-1]),
+            'nz_fm': (
+                inputgacode['ne'][:,None]*1e13
+                *fz *scalen
+                *dmodel['AURORA']['target']['c_imp']
+                ), # [1/cm3], dim(rhop, cs)
+                }
 
     # Initializes default AURORA namelist
     nml = aurora.load_default_namelist()
@@ -149,10 +170,17 @@ def calc_imp_dens(
     # kinetic profiles
     kp = nml['kin_profs']
     kp['Te']['rhop'] = kp['ne']['rhop'] = kp['Ti']['rhop'] = np.sqrt(inputgacode['polflux']/inputgacode['polflux'][-1])    # rho_pol coordinates from GACODE
-    kp['ne']['vals'] = inputgacode['ne']*1e13 # [cm^-3]; dim(rhop,); electron denisty
-    kp['Te']['vals'] = inputgacode['Te']*1e3 # [eV]; dim(rhop,); electron temperature
-    kp['Ti']['vals'] = inputgacode['Ti_1']*1e3 # [eV]; dim(rhop,); ion temperature
+    kp['ne']['vals'] = scalen*inputgacode['ne']*1e13 # [cm^-3]; dim(rhop,); electron denisty
+    kp['Te']['vals'] = scaleT*inputgacode['Te']*1e3 # [eV]; dim(rhop,); electron temperature
+    kp['Ti']['vals'] = scaleT*inputgacode['Ti_1']*1e3 # [eV]; dim(rhop,); ion temperature
     nml['device'] = dmodel['AURORA']['device']
+
+    # -------------------
+    # Fractional abundance files
+    # -------------------
+
+    nml['acd'] = dmodel['AURORA']['acd']
+    nml['scd'] = dmodel['AURORA']['scd']
 
     # -------------------
     # SOL modeling

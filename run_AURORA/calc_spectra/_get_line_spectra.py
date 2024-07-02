@@ -16,7 +16,8 @@ from scipy.interpolate import interp1d
 
 __all__ = [
     'get_line_spectra',
-    'get_PEC'
+    'get_PEC',
+    'get_sticks'
     ]
 
 #########################################################
@@ -24,6 +25,15 @@ __all__ = [
 #               Main
 #
 #########################################################
+
+# Get PEC sticks (because I always forget)
+def get_sticks(
+    files=None, # string or list of strings
+    Te_eV=None, # [scalar]
+    ne_cm3=None, # [scalar]
+    ):
+
+    aurora.adf15_line_identification(files, Te_eV=Te_eV, ne_cm3=ne_cm3)
 
 # Get PEC curve
 def get_PEC(

@@ -83,6 +83,8 @@ def def_dmodel(
                     'P_rad': np.nan,
                     #'BC': {'rhop': 0.98, 'val': 1.0},
                     },
+                'acd': None,
+                'scd': None,
                 },
             },
         }
