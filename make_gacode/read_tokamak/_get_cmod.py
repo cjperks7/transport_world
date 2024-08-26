@@ -51,7 +51,8 @@ def get_cmod(
             'Zeff',
             'Ar_gas',
             'Te/Ti',
-            'H/D'
+            'H/D',
+            'W_MHD',
         ]
 
     # Initializes output
@@ -504,14 +505,17 @@ def _get_HoD(
     dout['exp']['H/(H+D)']['diags'] = ['balmer']
 
     # Value used in simulation
-    dout['exp']['H/(H+D)']['sim'] = np.trapz(
-        (
-            dout['ions']['H']['ni_tot_19m3']
-            /(dout['ions']['H']['ni_tot_19m3']
-            +dout['ions']['D']['ni_tot_19m3'])
-            ),
-        dout['vol_m3']
-        )/dout['vol_m3'][-1]
+    try:
+        dout['exp']['H/(H+D)']['sim'] = np.trapz(
+            (
+                dout['ions']['H']['ni_tot_19m3']
+                /(dout['ions']['H']['ni_tot_19m3']
+                +dout['ions']['D']['ni_tot_19m3'])
+                ),
+            dout['vol_m3']
+            )/dout['vol_m3'][-1]
+    except:
+        dout['exp']['H/(H+D)']['sim'] = 0
 
     return dout
 
