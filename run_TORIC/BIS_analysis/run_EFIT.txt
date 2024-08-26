@@ -1,0 +1,78 @@
+For the break-in-slope analysis, one needs to calculate global plasma
+parameters derived via an EFIT calculation on a fast time scale ~1ms
+
+The DAQ of the magnetics diagnostics operated at a 5kHz (0.2ms)
+sampling speed
+
+
+NOTE: Because EFIT data at C-Mod is traditionally stored on 
+dedicated "trees" for certain PIs, we are using an altered
+workflow prepared by Lucas Spahngher as described in:
+https://docs.google.com/presentation/d/1gXMMPZYrvhlROiewkYeP1KxawFfdxwwvSuFuA-Q5Iyc/edit#slide=id.p
+
+The EFIT executable is stored at:
+/usr/local/cmod/codes/efit/bin/
+
+NOTE: You will need to "ssh -X mferws04" to have access to the EFIT executable
+The -X is needed in case Matlab makes a login pop up
+The mfewsXX's don't have this directory anymore for whatever reason
+
+
+### ---- Step 1: env setup for rerunning EFIT ---- ###
+
+1.1 Make sure in pwd there's a further directory called "trees"
+to write all output into
+
+
+1.2 Create (or copy) three EFIT template files:
+<efit tree name>_model.{datafile, characteristics, tree}
+
+Templates for "efit_cjp_model.*" can be found under:
+/home/cjperks/transport_world/run_TORIC/BIS_analysis
+
+NOTE: The model files must be copied into pwd/trees/
+
+
+1.3 Copy an example .cvs input file into pwd
+
+An example input file for this Matlab code is stored under:
+/home/cjperks/transport_world/run_TORIC/BIS_analysis/time_to_run_shots_all_1.csv
+
+Lucas' code was ||-ized to run many shots for the disruptions group
+What is needed is a list of the shot, start time [s], and end time [s]
+appended under the Header line
+
+
+1.4 Copy run_efit_cjp.m into pwd
+An example input file is stored under:
+/home/cjperks/transport_world/run_TORC/BIS_analysis/run_efit_cjp.m
+
+NOTE: within run_efit_cjp.m, there's a variable "dt" controlling the EFIT
+time resolutions
+
+
+### ---- Step 2: Rerunning EFIT ---- ###
+
+Relevant files: run_efit_cjp.m
+
+2.1 Run Matlab code using:
+matlab -r -nodesktop -nosplash
+run_efit_cjp
+
+NOTE: This code will set a specficially named path variable in your system
+setenv('efit_cjp_path', tree_dir)
+tree_dir = directory that you want your trees to go into
+
+NOTE: This code will automatically run EFIT with mode=9 (continuous run)
+
+2.2 The output of this code will be written under pwd/trees/ as
+efit_cjp_shot#.{datafile, characteristics, tree}
+
+
+### ---- Step 3: Reading EFIT results ---- ###
+
+3.1 To use MDSplus to read a local EFIT tree results, see:
+/home/cjperks/transport_world/run_TORIC/BIS_analysis/scripts/get_wplasma.py
+
+NOTE: instead of using os.environ[]..., one can also use:
+export efit_cjp_path=$PWD

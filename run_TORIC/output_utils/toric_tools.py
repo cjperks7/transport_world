@@ -654,7 +654,7 @@ class toric_analysis:
                 val = np.arange(-1,1,2/(logl*1.0), 'd')
             else:
                 #val=np.arange(rmin,rmax*1.1,(rmax-rmin)/(logl*1.0),'d')
-                val = np.arange(1.5,4.8,(4.8-1.5)/(logl*1.0), 'd')
+                val = np.arange(0.5,3.5,(4.8-1.5)/(logl*1.0), 'd')
             CS=plt.contourf(xxx,yyy,lee2d,val)
         print ("interactive on")
 #        plt.ion()
