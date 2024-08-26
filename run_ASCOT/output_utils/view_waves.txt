@@ -1,0 +1,14 @@
+You can use the matlab script,
+"RFOF_plot_ascii_waves.m"
+
+
+
+module load matlab
+matlab -nodesktop
+addpath /global/cfs/projectdirs/m3195/ascot4/matlab
+addpath /global/cfs/projectdirs/m3195/ascot4/matlab/rfof
+addpath addpath /global/cfs/projectdirs/m224/cjperks/ascot_runs/CMOD/shot/out
+
+rr = RFOF_plot_ascii_waves('out.rfofwaves.parametric_waves')
+
+

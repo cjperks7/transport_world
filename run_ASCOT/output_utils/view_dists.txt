@@ -1,0 +1,106 @@
+How to read the thermal.h5 file produced by thermalPithchE
+
+import h5py
+f = h5py.File('thermal.h5', 'r')
+
+### --- Distribution --- ###
+
+dst = f['distributions']
+
+# (R,Z) x(mu, E) distribution
+rzPE = dst['rzPitchEdist']
+
+## Dimensions
+dim1_R = rzPE['abscissae']['dim1'][:] # dim(nR,)
+dim2_Z = rzPE['abscissae']['dim2'][:] # dim(nZ,)
+dim3_pitch = rzPE['abscissae']['dim3'][:] # dim(npitch,)
+dim4_E = rzPE['abscissae']['dim4'][:] # dim(nE,), [J]
+dim5_time = rzPE['abscissae']['dim5'][:] # dim(ntime,), [s]
+dim6_species = rzPE['abscissae']['dim6'][:] # dim(npitch,)
+
+# Distribution data
+data = rzPE['ordinate'][:]
+
+# (R,Z) x (V) distribution
+rzV = dst['rzVDist']
+
+## Dimensions
+dim1_R = rzV['abscissae']['dim1'] # dim(nR,)
+dim2_Z = rzV['abscissae']['dim2'] # dim(nZ,)
+
+### --- Plasma --- ###
+
+plsm = f['plasma']
+
+# Plasma components
+anums = plsm['anum'][:] # dim(nspec,)
+znums = plsm['znum'][:] # dim(nspec,)
+
+# Collision flag
+colls = plsm['colls'][:] # dim(nspec +1,)
+
+# 1D profile data
+rhop = plsm['1d']['rho'][:] # dim(nrho,)
+ne = plsm['1d']['ne'][:] # dim(nrho,) # [1/m^3]
+ni = plsm['1d']['ni'][:] # dim(nrho, nspec) # [1/m^3]
+te = plsm['1d']['te'][:] # dim(nrho,), [eV]
+ti = plsm['1d']['ti'][:] # dim(nrho,), [eV]
+zeff = plsm['1d']['zeff'][:] # dim(nrho,)
+
+fig, ax = plt.subplots()
+
+ax.plot(rhop, zeff)
+
+### --- Species of interest --- ###
+
+spc = f['species']
+
+# Test particle data
+anum = spc['testParticle']['anum'][:] # [amu]
+znum = spc['testParticle']['znum'][:] # [charge]
+chrg = spc['testParticle']['charge'][:] # [C]
+mss = spc['testParticle']['mass'][:] # [kg]
+
+dummy = spc['testParticle']['origin'][:] # ???
+
+### --- Magnetic field --- ###
+
+bfld = f['bfield']
+
+# Grid dimentsion
+nphi = bfld['nphi'][:] 
+nr = bfld['nr'][:] 
+nz = bfld['nz'][:]
+
+# Grid knots
+RR_1 = bfld['r'][:] # dim(nr,)
+ZZ_1 = bfld['z'][:] # dim(nz,)
+
+# Magnetic axis
+Rmaj = bfld['raxis'][:]
+Zmaj = bfld['zaxis'][:]
+
+# X-point
+RX = bfld['rxpoint'][:]
+ZX = bfld['zxpoint'][:]
+
+
+
+# Poloidal flux grid
+psi = bfld['2d']['psi'][:] # dim(nr,nz)
+
+RR_2, ZZ_2 = np.meshgrid(RR_1, ZZ_1)
+
+fig, ax = plt.subplots()
+cont = ax.contourf(RR_2, ZZ_2, psi)
+cb = fig.colorbar(cont, ax=ax)
+
+
+
+# Toroidal magnetic field
+bphi = bfld['2d']['bphi'][:] # dim(nr,nz)
+
+fig, ax = plt.subplots()
+cont = ax.contourf(RR_2, ZZ_2, bphi)
+cb = fig.colorbar(cont, ax=ax)
+

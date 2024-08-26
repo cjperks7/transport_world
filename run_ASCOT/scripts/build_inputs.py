@@ -22,12 +22,18 @@ import os
 shot = '1140221013'
 in_path = os.path.join(
     '/home/cjperks',
-    '2201_Pumpout',
+    'work/2201_Pumpout',
     'CMOD/shots',
     shot
     )
 fgacode = 'input_t0.8s.gacode'
 fgfile = 'g'+shot+'.01000'
+
+# Species
+ions = ['D', 'H', 'Ar16']
+zn = [1, 1, 18]
+zion = [1, 1, 16]
+amn = [2, 1, 40]
 
 #######################################################
 #
@@ -61,8 +67,8 @@ utz.write_plasma1d(
     fgacode=fgacode,
     # Species
     ions = ['D', 'H', 'Ar16'],
-    charges = [1, 1, 16],
-    masses = [2, 1, 40],
+    charges = zion,
+    masses = amn,
     # Optional dictioanry to overwrite nz profile with external
     ext_nz = {
         'ion': ['Ar16', 'Ar17'],
@@ -84,8 +90,22 @@ utz.write_wall2d(
     )
 
 
-# Writes RFOF input files
+# 4) Writes RFOF input files
+zion.append(9)
+zn.append(9)
+amn.append(19)
 utz.edit_waves(
     in_path=in_path,
     RF_abs = 4.0e3, # [W]
+    zion = zion,
+    zn = zn, 
+    amn = amn,
+    nspec = 3, # matlab indexing
+    )
+
+# 5) Write rho_tor, rho_pol conversion
+utz.write_rho(
+    # Files
+    in_path=in_path,
+    fgacode=fgacode
     )

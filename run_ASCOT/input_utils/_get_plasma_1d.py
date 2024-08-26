@@ -125,8 +125,9 @@ def write_plasma1d(
     # Loop over radius
     for rr in np.arange(len(inputga['ne'])):
         ni = ''
+        ni_lump = inputga['ne'][rr]*1e19
         # Loop over ions
-        for ion in ions:
+        for ii, ion in enumerate(ions):
             # Loop over ions in input.gacode file
             ion_in_ga = False
             for kion in inputga['IONS'].keys():
@@ -153,15 +154,11 @@ def write_plasma1d(
 
             # Write data
             ni += "{:1.7E}".format(data_nz).rjust(16, ' ')
+            ni_lump -= data_nz *charges[ii]
 
         # Lumped impurity fill
-        data_lump = (
-            (
-                inputga['ne'][rr] - inputga['ni_'+kionD][rr] - inputga['ni_'+kionH][rr]
-            )*1e19
-            / 9
-            )
-        ni += "{:1.7E}".format(data_lump).rjust(16, ' ')
+        ni_lump /= 9
+        ni += "{:1.7E}".format(ni_lump).rjust(16, ' ')
 
         # Writes data
         f.write(
