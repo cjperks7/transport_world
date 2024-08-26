@@ -1,0 +1,5 @@
+
+Make only works in active conda environment for some reason
+
+To fix this in desired conda environment, do:
+make clean; make

@@ -37,7 +37,7 @@ def def_dmodel(
                 },
             'paths':{
                 'in_path': os.path.join(
-                    '/home/cjperks/'
+                    '/home/cjperks/work/'
                     '2201_Pumpout/CMOD/shots/',
                     shot
                     ),
