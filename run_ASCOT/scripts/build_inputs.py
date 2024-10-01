@@ -80,7 +80,26 @@ utz.write_plasma1d(
     )
 
 # 2) Magnetic background
-#### Use MATLAB scripts 
+
+# Locate X-point on plot
+from transport_world.run_ASCOT import input_utils as utz
+in_path = ''
+fgfile = 'g1140221013.01000'
+Xpt_RZ = [0.55334, -0.3939]
+#utz.find_Xpt(
+#    in_path=in_path,
+#    fgfile=fgfile,
+#    Xpt_RZ = Xpt_RZ,
+#    )
+
+# Writes input data
+utz.write_magn(
+    in_path=in_path,
+    fgfile=fgfile,
+    file_type = 'eqdsk',
+    B_type = '2d',
+    Xpt_RZ = Xpt_RZ,
+    )
 
 # 3) 2D wall geometry
 utz.write_wall2d(
