@@ -14,6 +14,7 @@ from omfit_classes import omfit_eqdsk
 import matplotlib.pyplot as plt
 from portals.gs_tools import GEQmodule
 import scipy.constants as cnt
+import os
 
 __all__ = [
     'get_geq',
@@ -41,7 +42,9 @@ def get_geq(
     dout['rhot'] = np.linspace(0,1,101)
 
     # Output data from gfile
-    gfile = omfit_eqdsk.OMFITgeqdsk(path_input+path_gfile)
+    gfile = omfit_eqdsk.OMFITgeqdsk(
+        os.path.join(path_input, path_gfile)
+        )
 
     # gfile scalar values
     torfluxa_g   = -1*gfile['fluxSurfaces']['geo']['phi'][-1]/(2*np.pi) # [Wb/rad], edge toroidal flux divided by 2pi (Note: direction dependent)
@@ -106,7 +109,9 @@ def get_geq(
 
     # Plotting
     if plt_all:
-        g = GEQmodule.PORTALSgeqdsk(path_input+path_gfile)
+        g = GEQmodule.PORTALSgeqdsk(
+            os.path.join(path_input, path_gfile)
+            )
         g.plot()
 
         plt.show()
@@ -133,7 +138,9 @@ def get_harm_res(
     ):
 
     # Output data from gfile
-    gfile = omfit_eqdsk.OMFITgeqdsk(path_input+path_gfile)
+    gfile = omfit_eqdsk.OMFITgeqdsk(
+        os.path.join(path_input, path_gfile)
+        )
 
     # Mesh
     R = gfile['AuxQuantities']['R'] # [m]

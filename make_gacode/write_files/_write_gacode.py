@@ -7,7 +7,7 @@ in the GACODE format
 
 import numpy as np
 from datetime import date
-
+import os
 
 __all__ = [
     'write_ga',
@@ -26,7 +26,13 @@ def write_ga(
 
     # Opens an ASCII file to write in
     if name is None:
-        f = open(dout['paths']['input']+'/input_t'+str(dout['t0_s'])+'s.gacode', 'w')
+        f = open(
+            os.path.join(
+                dout['paths']['input'],
+                'input_%s.gacode'%(dout['t0_s'])
+                ),
+            'w'
+            )
     else:
         f=open(name, 'w')
 

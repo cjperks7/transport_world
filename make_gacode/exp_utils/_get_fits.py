@@ -9,9 +9,13 @@ cjperks
 '''
 
 import numpy as np
+import sys, os
 from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 from transport_world.make_gacode import read_tokamak as rTok
+sys.path.insert(0,'/home/cjperks/usr/python3modules/eqtools3')
+import eqtools
+sys.path.pop(0)
 
 plt.rcParams.update({'font.size': 16})
 
@@ -191,39 +195,65 @@ def _read_profiletools(
     ):
 
     # Modules
-    import netCDF4    
+    import netCDF4
 
-    # Assumes files are in the form
-    #   path_input + '/ne' + path_kin
-    #   path_input + '/Te' + path_kin
-    ne = netCDF4.Dataset(path_input+'/ne'+path_kin, 'r')
-    Te = netCDF4.Dataset(path_input+'/Te'+path_kin, 'r')
+    # Init
+    profs = ['ne_19m3', 'Te_keV', 'Ti_keV'] 
+    ddata = {}
 
-    # Radial coordinate
-    if 'r/a' in Te.variables.keys():
-        rad_Te = dout['rmin_m']/dout['rmin_m'][-1]
-        key_Te = 'r/a'
+    for prof in profs:
+        if prof == 'ne_19m3':
+            prof_key = 'n_e'
+            scale = 10
+        elif prof == 'Te_keV':
+            prof_key = 'T_e'
+            scale = 1
+        elif prof == 'Ti_keV':
+            prof_key = 'T_i'
+            scale = 1
 
-    if 'r/a' in ne.variables.keys():
-        rad_ne = dout['rmin_m']/dout['rmin_m'][-1]
-        key_ne = 'r/a'
+        # Assumes files are in the form
+        #   path_input + '/ne' + path_kin
+        #   path_input + '/Te' + path_kin
+        ff = netCDF4.Dataset(
+            os.path.join(
+                path_input,
+                prof.split('_')[0].lower() + path_kin
+                ),
+            'r'
+            )
 
-    # Interpolates onto grid
-    dout['ne_19m3'] = interp1d(
-        np.asarray(ne.variables[key_ne][:]),
-        np.asarray(ne.variables['n_e'])*10,
-        bounds_error=False,
-        fill_value=(float(ne.variables['n_e'][0])*10, 0)
-        )(rad_ne)
-    dout['Te_keV'] = interp1d(
-        np.asarray(Te.variables[key_Te][:]),
-        np.asarray(Te.variables['T_e']),
-        bounds_error=False,
-        fill_value=(float(Te.variables['T_e'][0]), 0)
-        )(rad_Te)
-    
-    # profiletools doesn't do Ti
-    dout['Ti_keV'] = dout['Te_keV'].copy()
+        # Error checks
+        if prof_key not in ff.variables.keys():
+            others = [', CTS', ', HIREXSR, He-like Ar']
+            for oth in others:
+                if prof_key + oth in ff.variables.keys():
+                    prof_key += oth
+
+        # Radial coordinate
+        if 'r/a' in ff.variables.keys():
+            rad_val = dout['rmin_m']/dout['rmin_m'][-1]
+            rad_key = 'r/a'
+        elif 'sqrt{psi_n}' in ff.variables.keys():
+            rad_val = dout['rhop']
+            rad_key = 'sqrt{psi_n}'
+
+
+        # Interpolates onto grid
+        dout[prof] = interp1d(
+            np.asarray(ff.variables[rad_key][:]),
+            np.asarray(ff.variables[prof_key])*scale,
+            bounds_error=False,
+            fill_value=(float(ff.variables[prof_key][0])*scale, 0)
+            )(rad_val)
+
+        dout[prof+'_err'] = interp1d(
+            np.asarray(ff.variables[rad_key][:]),
+            np.asarray(ff.variables['err_'+prof_key])*scale,
+            bounds_error=False,
+            fill_value=(float(ff.variables['err_'+prof_key][0])*scale, 0)
+            )(rad_val)
+
 
     # Output
     return dout
@@ -238,6 +268,7 @@ def conv_rad(
     dout=None,
     diag=None,
     xout='rhot',
+    edr = None,
     ):
     '''
     Converts various radial bases used for diags to sq. norm. tor. flux
@@ -252,21 +283,26 @@ def conv_rad(
 
     # rmin -> output x-variable
     if 'r_m' in diag.keys():
-        xnew_all = interp1d(
-            dout['rmin_m'],
-            xvar,
-            bounds_error=False,
-            fill_value = (0, dout['rmin_m'][-1])
-            )(diag['r_m']-float(dout['rcentr_m']))
+        psin_tmp = np.zeros(diag['r_m'].shape)
+
+        for ii in np.arange(diag['r_m'].shape[1]):
+            psin_tmp[:,ii] = np.sqrt(edr.rmid2psinorm(
+                list(diag['r_m'][:,ii]),
+                diag['t_s'][ii],
+                sqrt = False,
+                ))**2
 
     # psin -> output x-variable
     elif 'psin' in diag.keys():
-        xnew_all = interp1d(
-            dout['rhop']**2,
-            xvar,
-            bounds_error=False,
-            fill_value = (0,1)
-            )(diag['psin'])
+        psin_tmp = diag['psin']
+
+    # Interpolates
+    xnew_all = interp1d(
+        dout['rhop']**2,
+        xvar,
+        bounds_error=False,
+        fill_value = (0,1)
+        )(psin_tmp)
 
     return xnew_all
 
@@ -279,6 +315,7 @@ def _plot(
     t0=None,
     dt=None,
     plt_coor = 'rhot',
+    plt_q = True,
     ):
 
     # x-axis variable
@@ -294,21 +331,38 @@ def _plot(
 
     fig, ax = plt.subplots(1,3)
 
-    # Plots ne
+    # Plots profile fits
     if ne is not None:
         ax[0].plot(xvar, ne)
-    ax[0].plot(xvar, dout['ne_19m3'], 'k', label='fit time-avg')
-
-    # Plots Te
     if Te is not None:
         ax[1].plot(xvar, Te)
-    ax[1].plot(xvar, dout['Te_keV'], 'k', label='fit time-avg')
-
-    # Plots Ti
     if Ti is not None:
         ax[2].plot(xvar, Ti)
-    ax[2].plot(xvar, dout['Ti_keV'], 'k', label='fit time-avg')
-  
+
+    keys = ['ne_19m3', 'Te_keV', 'Ti_keV']
+    colors = ['r', 'b', 'g']
+    for ii, key in enumerate(keys):
+        ax[ii].plot(
+            xvar,
+            dout[key],
+            label = 'fit tme-avg',
+            color = colors[ii],
+            )
+        ax[ii].fill_between(
+            xvar,
+            dout[key]+dout[key+'_err'],
+            dout[key]-dout[key+'_err'],
+            alpha = 0.6,
+            color = colors[ii],
+            )
+        ax[ii].fill_between(
+            xvar,
+            dout[key]+2*dout[key+'_err'],
+            dout[key]-2*dout[key+'_err'],
+            alpha = 0.3,
+            color = colors[ii],
+            )
+
     # -----------------
     # Experimental data
     # -----------------
@@ -316,6 +370,15 @@ def _plot(
     if shot is not None:
         # Obtains experimental kinetic profiles
         dkin = rTok.profs_cmod(shot=shot)
+
+        # Gets eqdsk
+        edr = eqtools.EqdskReader(
+            gfile=os.path.join(
+                dout['paths']['input'],
+                dout['paths']['gfile']
+                ),
+            afile=None
+            )
 
         # Loop over kinetric profiles
         for prof in dkin.keys():
@@ -336,30 +399,38 @@ def _plot(
                 # Skip unavailable diagnostics
                 if len(dkin[prof][diag]) == 0:
                     continue
+                elif np.isnan(dkin[prof][diag][vals]).all():
+                    continue
+                elif diag in ['GPC', 'GPC2', 'FRC']:
+                    continue
 
                 # Finds time range
-                #t_ind = np.where(
-                #    (dkin[prof][diag]['t_s'] >=t0-dt) 
-                #    & (dkin[prof][diag]['t_s'] <=t0+dt) 
-                #    )[0]
-                t_ind = np.argmin(
-                    abs(
-                        dkin[prof][diag]['t_s'] - t0
-                        )
-                    )
+                t_ind = np.where(
+                    (dkin[prof][diag]['t_s'] >=dt[0]) 
+                    & (dkin[prof][diag]['t_s'] <=dt[1]) 
+                    )[0]
 
                 if diag == 'TCI':
-                    nebar = dkin[prof][diag][vals][t_ind]/1e19
+                    nebar = np.mean(dkin[prof][diag][vals][t_ind])/1e19
 
                     ax[num].plot([0,1], [nebar,nebar], 'g--', label=diag)
 
                 else:
-                    val = dkin[prof][diag][vals][:,t_ind]
-
+                    # Uncertainty weighted average
                     if err in dkin[prof][diag].keys():
-                        val_std = dkin[prof][diag][err][:,t_ind]
+                        weights = 1/dkin[prof][diag][err][:,t_ind]**2
+                        weights[np.isinf(weights)] = 0
+                        weights[np.isnan(weights)] = 0
+
+                        val = (
+                            (dkin[prof][diag][vals][:,t_ind] *weights).sum(axis=1)
+                            /weights.sum(axis=1)
+                            )
+                        val_std = np.sqrt(1/weights.sum(axis=1))
                     else:
-                        val_std = dkin[prof][diag][vals][:,t_ind] * 0.1
+                        weights = None
+                        val = np.mean(dkin[prof][diag][vals][:,t_ind], axis=1)
+                        val_std = val * 0.1
 
                     if prof == 'ne':
                         val /= 1e19
@@ -369,10 +440,17 @@ def _plot(
                         dout = dout,
                         diag = dkin[prof][diag],
                         xout = plt_coor,
+                        edr = edr,
                         )
                     
                     if xnew_all.ndim > 1:
-                        xnew = xnew_all[:,t_ind]
+                        if weights is None:
+                            xnew = np.mean(xnew_all[:,t_ind],axis=1)
+                        else:
+                            xnew = (
+                                (xnew_all[:,t_ind]*weights).sum(axis=1)/
+                                weights.sum(axis=1)
+                                )
                     else:
                         xnew = xnew_all
                     
@@ -382,6 +460,28 @@ def _plot(
                         yerr = val_std,
                         fmt='*', label=diag
                         )
+
+    if plt_q:
+        ind = np.argmin(abs(dout['q'] - 1))
+
+        ax[0].plot(
+            [xvar[ind], xvar[ind]],
+            [0, 20],
+            color = 'm',
+            label = 'q =1'
+            )
+        ax[1].plot(
+            [xvar[ind], xvar[ind]],
+            [0, 3],
+            color = 'm',
+            label = 'q =1'
+            )
+        ax[2].plot(
+            [xvar[ind], xvar[ind]],
+            [0, 3],
+            color = 'm',
+            label = 'q =1'
+            )
 
 
     ax[0].set_xlabel(xlab)
@@ -405,6 +505,8 @@ def _plot(
     leg2 = ax[2].legend()
     leg2.set_draggable('on')
 
-    fig.suptitle('Fitted Profiles t='+str(t0-dt)+'-'+str(t0+dt)+'s')
+    
+
+    fig.suptitle('Fitted Profiles; %i; t=[%0.2f, %0.2f] s'%(shot, dt[0], dt[1]))
 
     plt.show()

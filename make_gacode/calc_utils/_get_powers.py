@@ -9,6 +9,7 @@ get_powers.py is a module to facilitate calcualting
 
 '''
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.constants as cnt
@@ -233,7 +234,7 @@ def _get_qrad(
     verb=None,
     ):
     # Output data from gfile
-    gfile = omfit_eqdsk.OMFITgeqdsk(dout['paths']['input']+dout['paths']['gfile'])
+    gfile = omfit_eqdsk.OMFITgeqdsk(os.path.join(dout['paths']['input'],dout['paths']['gfile']))
 
     # Initialize
     qline = np.zeros(len(dout['rhot']))

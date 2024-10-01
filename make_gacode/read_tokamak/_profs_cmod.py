@@ -122,7 +122,7 @@ def _get_ne(
 
     try:
         # Obtains electron density data
-        dne['Edge']['val_1e20m3'] = tree.getNode('\electrons::top.yag_edgets.results:ne').data()/1e20 # [1e20 1/m3], dim(nchan,t)
+        dne['Edge']['val_1e20m3'] = tree.getNode('\electrons::top.yag_edgets.results:ne').data() # [1e20 1/m3], dim(nchan,t)
 
         # Radial domain
         dne['Edge']['psin'] = tree.getNode('\electrons::top.yag_edgets.results:psinorm').data() # dim(nchan,t)
