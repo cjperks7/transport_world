@@ -33,6 +33,7 @@ def get_ion_bal(
     ne_cm3 = None, # [cm3], Electron density
     files = None,
     plot = False,
+    superstages = [],
     ):
     
     # Collects derived rate data for impurity ion, 
@@ -48,7 +49,8 @@ def get_ion_bal(
     _, fz = aurora.atomic.get_frac_abundances(
         atom_data,
         ne_cm3, Te_eV,
-        plot=plot
+        plot=plot,
+        superstages = superstages,
         )
 
     # Output, dim(nrho, ncharge)
@@ -119,6 +121,7 @@ def calc_imp_dens(
     # Extra
     scaleT = 1,
     scalen = 1,
+    superstages = [],
     ):
 
     # Reads in magnetic equilibrium and kinetic profiles
@@ -143,6 +146,7 @@ def calc_imp_dens(
             ne_cm3 = scalen*inputgacode['ne']*1e13, # [cm3], Electron density
             files = {'acd': dmodel['AURORA']['acd'], 'scd': dmodel['AURORA']['scd']},
             plot = plt_all,
+            superstages = superstages,
             )
         return {
             'rhop_fm': np.sqrt(inputgacode['polflux']/inputgacode['polflux'][-1]),

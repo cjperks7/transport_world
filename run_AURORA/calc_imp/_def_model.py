@@ -39,7 +39,8 @@ def def_dmodel(
                 'in_path': os.path.join(
                     '/home/cjperks/work/'
                     '2201_Pumpout/CMOD/shots/',
-                    shot
+                    shot,
+                    'profiles'
                     ),
                 'fgacode': fgacode,
                 'geqdsk': 'g'+shot+'.01000',
