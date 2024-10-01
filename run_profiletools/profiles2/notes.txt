@@ -47,7 +47,8 @@ How to use the GPfit GUI:
 
     Fit Data
     Save Fit --> writes fit to NetCDF
-        NOTE: one NetCDF file per profile (ne/Te/Ti)
+        NOTE: one NetCDF file per steady-state profile (ne/Te/Ti)
+        Convenently remembers what folder you want to put stuff
 
 4. Plot
     Plot limits
