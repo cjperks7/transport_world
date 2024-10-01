@@ -25,20 +25,15 @@ __all__ = [
 
 def write_rho(
     # path/to/input.gaocde
-    in_path = None,
+    ascot_path = None,
     fgacode = None,
     ):
 
     # Reads input.gacode file
-    inputga = omfit_gapy.OMFITgacode(
-        os.path.join(
-            in_path,
-            fgacode,
-            )
-        )
+    inputga = omfit_gapy.OMFITgacode(fgacode)
 
     # Opens an ASCII file to write in
-    f = open(in_path+'/input_ASCOT/input.rhoTorPol', 'w')
+    f = open(ascot_path+'/input.rhoTorPol', 'w')
 
     # Header
     f.write('#\n')

@@ -25,7 +25,7 @@ __all__ = [
 
 def write_plasma1d(
     # path/to/input.gaocde
-    in_path = None,
+    ascot_path = None,
     fgacode = None,
     # Ions to include
     ions = ['D', 'H', 'Ar16', 'Ar17'],
@@ -38,19 +38,17 @@ def write_plasma1d(
             np.array([0]), # [cm^-3], dim(nrho,)
             np.array([0]) # [cm^-3], dim(nrho,)
             ]
-        }
+        },
+    # Extra
+    scalen = 1,
+    scaleT = 1,
     ):
 
     # Reads input.gacode file
-    inputga = omfit_gapy.OMFITgacode(
-        os.path.join(
-            in_path,
-            fgacode,
-            )
-        )
+    inputga = omfit_gapy.OMFITgacode(fgacode)
 
     # Opens an ASCII file to write in
-    f = open(in_path+'/input_ASCOT/input.plasma_1d', 'w')
+    f = open(ascot_path+'/input.plasma_1d', 'w')
 
     # Header
     f.write('# Input file for ASCOT containing radial 1D information of plasma temperature,density and toroidal rotation\n')
@@ -140,13 +138,13 @@ def write_plasma1d(
                         kionH = str(kion)
 
                     # Ion density data to use
-                    data_nz = inputga['ni_'+str(kion)][rr]*1e19
+                    data_nz = inputga['ni_'+str(kion)][rr]*1e19*scalen
 
             # If externally supplied profile
             if not ion_in_ga:
                 # Tries to see if an external profile was supplied
                 try:
-                    data_nz = ext_nz['data'][ext_nz['ion'].index(ion)][rr]*1e6
+                    data_nz = ext_nz['data'][ext_nz['ion'].index(ion)][rr]*1e6*scalen
 
                 # Error message
                 except:
@@ -166,16 +164,16 @@ def write_plasma1d(
                 np.sqrt(inputga['polflux'][rr]/inputga['polflux'][-1])
                 ).rjust(16, ' ')
             + "{:1.7E}".format(
-                inputga['Te'][rr]*1e3
+                inputga['Te'][rr]*1e3*scaleT
                 ).rjust(16, ' ')
             + "{:1.7E}".format(
-                inputga['ne'][rr]*1e19
+                inputga['ne'][rr]*1e19*scalen
                 ).rjust(16, ' ')
             + "{:1.7E}".format(
                 0.0
                 ).rjust(16, ' ')
             + "{:1.7E}".format(
-                inputga['Ti_1'][rr]*1e3
+                inputga['Ti_1'][rr]*1e3*scaleT
                 ).rjust(16, ' ')
             + ni
             + "\n"

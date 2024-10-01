@@ -11,6 +11,7 @@ Oct 2nd, 2023
 from omfit_classes import omfit_eqdsk
 import os
 import numpy as np
+import matplotlib.pyplot as plt
 
 __all__ = [
     'write_wall2d'
@@ -24,17 +25,16 @@ __all__ = [
 
 def write_wall2d(
     # path/to/input.gfile
-    in_path = None,
+    ascot_path = None,
     fgfile = None,
+    plt_all = False,
     ):
 
     # Loads gfile
-    gfile = omfit_eqdsk.OMFITgeqdsk(
-        os.path.join(in_path,fgfile)
-        )
+    gfile = omfit_eqdsk.OMFITgeqdsk(fgfile)
 
     # Opens an ASCII file to write in
-    f = open(in_path+'/input_ASCOT/input.wall_2d', 'w')
+    f = open(ascot_path+'/input.wall_2d', 'w')
 
     # Header
     f.write(
@@ -51,6 +51,10 @@ def write_wall2d(
             + "0".rjust(4, ' ')
             + "\n"
         )
+
+    if plt_all:
+        fig, ax = plt.subplots()
+        ax.plot(gfile['RLIM'], gfile['ZLIM'], 'k-')
 
     # Closes file
     f.close()

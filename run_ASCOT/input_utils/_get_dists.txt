@@ -1,0 +1,35 @@
+This document details how to run thermalPictchE to create a thermal
+distribution of markers for ASCOT4-RFOF simulations
+
+Step 1. Compile code
+alias mk_th=`make clean_pspline; make clean_deps; make thermalPitchE'
+
+Make sure your modules are loaded right
+alias iASCOT=`. /global/homes/c/cjperks/bin/init_ASCOT.sh'
+
+Step 2. Prepare input files
+Most input files you'lll need here will be the exact same as
+running a full test_rfofAscot simulation, except in input.options --
+
+2.1 DIST%ENERGY2 ~ 5x Ti0
+Afterwards, change it back to a much higher value, e.g. 1e6
+ --> Adjust after first E_norm scaling sim if too low or too high
+
+
+
+Step 3. Running
+
+3.1 Run executable in simulation directory
+alias thASCOT='/global/cfs/projectdirs/m3195/ascot4/ascot4-trunk/thermalPitchE'
+
+Can just be on login node
+
+3.2 Choose ordinate number of species per input.plasma_1d
+
+Step 4. Afterwards..
+
+4.1 The output will be written to file thermal.h5
+rename of softlink to input.markerDist.h5 to run test_rfofAscot
+
+4.2 Compile test_rfofAscot
+alias mk_rf=`make clean_pspline; make clean_deps; make test_rfofAscot USE_RFOF=yes'
