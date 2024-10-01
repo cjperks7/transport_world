@@ -43,6 +43,9 @@ def build_profnt(
             ]
         },
     name = None,
+    # Extra
+    scalen = 1,
+    scaleT = 1,
     ):
 
     # Reads input.gacode file
@@ -83,7 +86,7 @@ def build_profnt(
     for ii in np.arange(len(ions)):
         f.write(
             str(masses[ii]).rjust(4, ' ')
-            + str(charges[ii]).rjust(4, ' ')
+            + str(int(charges[ii])).rjust(4, ' ')
             + "\n"
             )
     
@@ -110,7 +113,7 @@ def build_profnt(
     _write_block(
         f=f,
         nrho=nrho,
-        data = inputga['ne']*1e13,
+        data = inputga['ne']*1e13*scalen,
         )
 
     # Writes header for electron temperature [keV]
@@ -123,7 +126,7 @@ def build_profnt(
     _write_block(
         f=f,
         nrho=nrho,
-        data = inputga['Te'],
+        data = inputga['Te']*scaleT,
         )
 
     # Loop over ions
@@ -168,7 +171,7 @@ def build_profnt(
                     _write_block(
                         f=f,
                         nrho = nrho,
-                        data = inputga['Ti_'+str(kion)],
+                        data = inputga['Ti_'+str(kion)]*scaleT,
                         )
 
                     # Switchs flag to stop writing ion temperature block

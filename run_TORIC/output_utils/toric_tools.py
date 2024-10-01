@@ -444,7 +444,7 @@ class toric_analysis:
         return
 
     def set_layout( self, layout='poster' ):
-
+        '''
         if (layout == 'paper'):
             self.mylw=2.0
             self.mypt=10.0
@@ -464,7 +464,7 @@ class toric_analysis:
             'text.usetex' : False
             }
         plt.rcParams.update(params)
-
+        '''
         return
 
 

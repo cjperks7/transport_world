@@ -56,7 +56,7 @@ time resolutions
 Relevant files: run_efit_cjp.m
 
 2.1 Run Matlab code using:
-matlab -r -nodesktop -nosplash
+matlab -nodesktop -nosplash
 run_efit_cjp
 
 NOTE: This code will set a specficially named path variable in your system
@@ -76,3 +76,7 @@ efit_cjp_shot#.{datafile, characteristics, tree}
 
 NOTE: instead of using os.environ[]..., one can also use:
 export efit_cjp_path=$PWD
+
+3.2 Making an geqdsk file, first set enviroment path in terminal
+export efit_cjp_path=$PWD (in the /trees directory)
+write_eqdsk, shot#, time#[ms], tree='efit_cjp'
