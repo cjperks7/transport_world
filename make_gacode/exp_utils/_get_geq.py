@@ -126,6 +126,7 @@ def get_geq(
 
 # Finds the (R,Z) contour of a cyclotron resonance layer
 def get_harm_res(
+    ddata = None,
     # Files
     path_input = None,
     path_gfile = None,
@@ -137,17 +138,24 @@ def get_harm_res(
     amu = 40,
     ):
 
-    # Output data from gfile
-    gfile = omfit_eqdsk.OMFITgeqdsk(
-        os.path.join(path_input, path_gfile)
-        )
+    if ddata is None:
+        if path_gfile is not None:
+            # Output data from gfile
+            gfile = omfit_eqdsk.OMFITgeqdsk(
+                os.path.join(path_input, path_gfile)
+                )
 
-    # Mesh
-    R = gfile['AuxQuantities']['R'] # [m]
-    Z = gfile['AuxQuantities']['Z'] # [m]
+            # Mesh
+            R = gfile['AuxQuantities']['R'] # [m]
+            Z = gfile['AuxQuantities']['Z'] # [m]
 
-    # B-field
-    Bt = gfile['AuxQuantities']['Bt'] # [T]
+            # B-field
+            Bt = gfile['AuxQuantities']['Bt'] # [T]
+
+    else:
+        R = ddata['R'] # [m], dim(nR,)
+        Z = ddata['Z'] # [m], dim(nZ,)
+        Bt = ddata['Bt'] # [T], dim(nZ, nR)
 
     # Get rid of helicity sign convenctions
     if np.max(Bt) <0:
@@ -166,7 +174,12 @@ def get_harm_res(
         Bfine = interp1d(R,Bt[ii,:])(Rfine)
 
         # Index of harmonic resonance
-        ind = np.argmin(abs(Bfine - (freq*2*np.pi/order)*(cnt.m_p/cnt.e) *amu/cs))
+        try:
+            ind = np.nanargmin(abs(
+                Bfine - (freq*2*np.pi/order)*(cnt.m_p/cnt.e) *amu/cs
+                ))
+        except:
+            ind = 0
 
         # Radial position
         Rout[ii] = Rfine[ind]
