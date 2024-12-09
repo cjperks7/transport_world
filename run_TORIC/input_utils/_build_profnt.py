@@ -24,8 +24,32 @@ __all__ = [
 #
 ###################################################
 
+def _write_block(
+    f=None,
+    nrho=None,
+    data = None,
+    ):
+
+    # Writes block data
+    for rr in np.arange(int(np.ceil(nrho/5))):
+        row = ''
+
+        for ii in np.arange(5):
+            try:
+                row += (
+                    "{:1.9E}".format(
+                        data[5*rr + ii]
+                        ).rjust(16, ' ')
+                    )
+            except:
+                blah = 0
+
+        f.write(row+"\n")
+
 def build_profnt(
+    ddata = None,
     # path/to/input.gaocde
+    source = 'gacode',
     in_path = None,
     fgacode = None,
     # Ions to include
@@ -48,19 +72,20 @@ def build_profnt(
     scaleT = 1,
     ):
 
-    # Reads input.gacode file
-    inputga = omfit_gapy.OMFITgacode(
-        os.path.join(
-            in_path,
-            fgacode,
-            )
-        )
+    # Get data source
+    if ddata is None:
+        if source == 'gacode':
+            ddata = _read_gacode(
+                fgacode = os.path.join(in_path,fgacode),
+                ions = ions,
+                ext_nz = ext_nz
+                )
 
     # Assumes main ion species is always deuterium
     mainsp = np.where('D' in ions)[0][0] +1
 
     # Number of grid points
-    nrho = len(inputga['ne'])
+    nrho = len(ddata['rhop'])
 
     # Number of ions
     nions = len(ions)
@@ -100,7 +125,7 @@ def build_profnt(
     _write_block(
         f=f,
         nrho=nrho,
-        data = np.sqrt(inputga['polflux']/inputga['polflux'][-1]),
+        data = ddata['rhop'],
         )
 
     # Writes header for electron density [cm^-3]
@@ -113,7 +138,7 @@ def build_profnt(
     _write_block(
         f=f,
         nrho=nrho,
-        data = inputga['ne']*1e13*scalen,
+        data = ddata['ne_cm3']*scalen,
         )
 
     # Writes header for electron temperature [keV]
@@ -126,11 +151,66 @@ def build_profnt(
     _write_block(
         f=f,
         nrho=nrho,
-        data = inputga['Te']*scaleT,
+        data = ddata['Te_eV']*scaleT,
         )
 
     # Loop over ions
     Ti_row = False
+    for ii,ion in enumerate(ions):
+        # Writes header for ion density [cm^-3]
+        f.write(
+            ('ni_'+str(ii+1)+', cc').rjust(10, ' ')
+            + "\n"
+            )
+
+        # Write ion density data
+        _write_block(
+            f=f,
+            nrho = nrho,
+            data = ddata[ion],
+            )
+
+        # If ion temperature not yet written
+        if not Ti_row:
+            # Writes header for ion density [cm^-3]
+            f.write(
+                ('Ti_'+str(ii+1)+', keV').rjust(10, ' ')
+                + "\n"
+                )
+
+            # Write ion temperature data
+            _write_block(
+                f=f,
+                nrho = nrho,
+                data = ddata['Ti_eV']*scaleT,
+                )
+
+            # Switchs flag to stop writing ion temperature block
+            if diff_temp == 0:
+                Ti_row = True
+
+    # Finish file writing         
+    f.close()
+
+
+###################################################
+#
+#                   Utilities
+#
+###################################################
+
+def _read_gacode(
+    fgacode = None,
+    ions = None,
+    ext_nz = None,
+    ):
+
+    # Reads input.gacode file
+    ga = omfit_gapy.OMFITgacode(fgacode)
+
+    # Dictionary for ions
+    dions = {}
+
     for ii,ion in enumerate(ions):
         ion_in_ga = False
 
@@ -140,91 +220,28 @@ def build_profnt(
                 # Flag that ion is present in input.gacode file
                 ion_in_ga = True
 
-                # Writes header for ion density [cm^-3]
-                f.write(
-                    ('ni_'+str(ii+1)+', cc').rjust(10, ' ')
-                    + "\n"
-                    )
-
                 # Ion density data to use
                 try:
-                    data_nz = ext_nz['data'][ext_nz['ion'].index(ion)]
+                    dions[ion] = ext_nz['data'][ext_nz['ion'].index(ion)]
                 except:
-                    data_nz = inputga['ni_'+str(kion)]*1e13
-
-                # Write ion density data
-                _write_block(
-                    f=f,
-                    nrho = nrho,
-                    data = data_nz,
-                    )
-
-                # If ion temperature not yet written
-                if not Ti_row:
-                    # Writes header for ion density [cm^-3]
-                    f.write(
-                        ('Ti_'+str(ii+1)+', keV').rjust(10, ' ')
-                        + "\n"
-                        )
-
-                    # Write ion temperature data
-                    _write_block(
-                        f=f,
-                        nrho = nrho,
-                        data = inputga['Ti_'+str(kion)]*scaleT,
-                        )
-
-                    # Switchs flag to stop writing ion temperature block
-                    if diff_temp == 0:
-                        Ti_row = True
+                    dions[ion] = inputga['ni_'+str(kion)]*1e13
 
         # If ion was not in input.gacode file
         if not ion_in_ga:
             # Tries to see if an external profile was supplied
             try:
-                data_nz = ext_nz['data'][ext_nz['ion'].index(ion)]
-
-                # Writes header for ion density [cm^-3]
-                f.write(
-                    ('ni_'+str(ii+1)+', cc').rjust(10, ' ')
-                    + "\n"
-                    )
-
-                # Write ion density data
-                _write_block(
-                    f=f,
-                    nrho = nrho,
-                    data = data_nz,
-                    )
+                dions[ion] = ext_nz['data'][ext_nz['ion'].index(ion)]
 
             # Error message
             except:
                 print('Missing data for ion = '+ion)
 
-    # Finish file writing         
-    f.close()
 
-
-def _write_block(
-    f=None,
-    nrho=None,
-    data = None,
-    ):
-
-    # Writes block data
-    for rr in np.arange(int(np.ceil(nrho/5))):
-        row = ''
-
-        for ii in np.arange(5):
-            try:
-                row += (
-                    "{:1.9E}".format(
-                        data[5*rr + ii]
-                        ).rjust(16, ' ')
-                    )
-            except:
-                blah = 0
-
-        f.write(row+"\n")
-
-
+    # Output
+    return {
+        'rhop': np.sqrt(ga['polflux']/ga['polflux'][-1]),
+        'ne_cm3': ga['ne']*1e13,
+        'Te_eV': ga['Te'],
+        'Ti_eV': ga['Ti_1'],
+        **dions
+        }
