@@ -19,7 +19,7 @@ import os
 
 
 # Paths
-shot = '1140221013'
+shot = '1140221012'
 in_path = os.path.join(
     '/home/cjperks',
     'work/2201_Pumpout',
@@ -28,6 +28,7 @@ in_path = os.path.join(
     )
 fgacode = 'input_t0.8s.gacode'
 fgfile = 'g'+shot+'.01000'
+ascot_path = os.path.join(in_path, 'ASCOT')
 
 # Species
 ions = ['D', 'H', 'Ar16']
@@ -84,8 +85,9 @@ utz.write_plasma1d(
 # Locate X-point on plot
 from transport_world.run_ASCOT import input_utils as utz
 in_path = ''
-fgfile = 'g1140221013.01000'
-Xpt_RZ = [0.55334, -0.3939]
+fgfile = 'g1140221012.01000'
+#Xpt_RZ = [0.55334, -0.3939]
+Xpt_RZ = [0.556200, -0.41630]
 #utz.find_Xpt(
 #    in_path=in_path,
 #    fgfile=fgfile,
@@ -94,8 +96,8 @@ Xpt_RZ = [0.55334, -0.3939]
 
 # Writes input data
 utz.write_magn(
-    in_path=in_path,
-    fgfile=fgfile,
+    ascot_path=ascot_path,
+    fgfile=os.path.join(in_path,'profiles',fgfile),
     file_type = 'eqdsk',
     B_type = '2d',
     Xpt_RZ = Xpt_RZ,

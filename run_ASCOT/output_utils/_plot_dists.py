@@ -26,7 +26,8 @@ from omfit_classes import omfit_eqdsk
 
 __all__ = [
     '_plot_rhoDist',
-    '_plot_rzDist'
+    '_plot_rzDist',
+    '_plot_rzVDist'
     ]
 
 
@@ -36,14 +37,244 @@ __all__ = [
 #
 #############################################
 
-# Plots histograms of ini/end condistion data
-def _hist_conds(
-    dcond = None,
-    key = None,
+# Plots (vpara, vperp) distribution
+def _plot_rzVDist(
+    # Intial condition data
+    idata = None,
+    idf = None,
+    # Output data
+    ddata = None,
+    df = None,
+    # rho controls
+    rhop_min = 0,
+    rhop_max = 1,
+    # Plot controls
+    plt_t = -1,
+    plt_all = True,
+    # Extra
+    gfile = None,
     ):
 
+    # Gets data for trapped/passing boundary
+    if gfile is not None:
+        geq = omfit_eqdsk.OMFITgeqdsk(gfile)
+        rmin_g = geq['fluxSurfaces']['geo']['a']
+        rhop_g = np.sqrt(
+            geq['fluxSurfaces']['geo']['psin']
+            /geq['fluxSurfaces']['geo']['psin'][-1]
+            )
+
+        rmin = interp1d(
+            rhop_g, rmin_g
+            )((rhop_min+rhop_max)/2)
+
+        # Critical angle
+        cos_thetaC = np.sqrt(2*rmin/geq['RMAXIS']) # [v_||/v]
+        thetaC = np.arccos(cos_thetaC)
+
+
+    # Distribution data
+    if idf is None:
+        if idata is not None:
+            idf = _process_dist(
+                ddata=idata,
+                key = 'rVDist',
+                rhop_min = rhop_min,
+                rhop_max = rhop_max
+                )
+
+    if df is None:
+        df = _process_dist(
+            ddata = ddata,
+            key = 'rzVDist',
+            rhop_min = rhop_min,
+            rhop_max = rhop_max,
+            )
+
+    if not plt_all:
+        return df
+
+    #### --- PLot df/dVpe vs. Vperp for whoel plasma volume --- ####
+    # Units [s/m^4]
+
+
+    fig1, ax1  = plt.subplots()
+
+    if idf is not None:
+        '''
+        ax1.plot(
+            idf['whole']['Vpe_grid']['vals'],
+            idf['whole'][0]['Vpe_dist']['vals'],
+            '*-',
+            label= r'init, $\rho_p$=[0,1]'
+            )
+        '''
+        ax1.plot(
+            idf['rhop']['Vpe_grid']['vals'],
+            idf['rhop'][0]['Vpe_dist']['vals'],
+            '*-',
+            label= (
+                r'init, $\rho_p$=[%0.2f, %0.2f]'%(rhop_min, rhop_max)
+                )
+            )
+
+    for itime in np.arange(df['rhop']['t_grid']['size']):
+        '''
+        ax1.plot(
+            df['whole']['Vpe_grid']['vals'],
+            df['whole'][itime]['Vpe_dist']['vals'],
+            '*-',
+            label = r'$\rho_p$=[0,1]; $t_{RF,on}$ =%0.2d - %0.2d ms'%(
+                df['whole']['t_grid']['vals'][itime], 
+                df['whole']['t_grid']['vals'][itime+1]
+                )
+            )
+        '''
+        ax1.plot(
+            df['rhop']['Vpe_grid']['vals'],
+            df['rhop'][itime]['Vpe_dist']['vals'],
+            '*-',
+            label = r'$\rho_p$=[%0.2f,%0.2f]; $t_{RF,on}$ =%0.2d - %0.2d ms'%(
+                rhop_min, rhop_max,
+                df['rhop']['t_grid']['vals'][itime], 
+                df['rhop']['t_grid']['vals'][itime+1]
+                )
+            )
+        
+
+    ax1.grid('on')
+    ax1.set_yscale('log')
+    #ax1.set_xscale('log')
+    leg = ax1.legend(labelcolor='linecolor')
+    leg.set_draggable('on')
+
+    ax1.set_xlabel(r'$v_\perp$ [$m/s$]')
+    ax1.set_ylabel(r'$f_{Ar16+}$ [$s/m^4$]')
+ 
+    #ax1.set_ylim(1e7, 1e14)
+    ax1.set_xlim(0, 1.5e4)
+    ax1.xaxis.set_major_formatter(formatter)
+
+
+    #### --- Plot log10(df/dVpa/dVpe) on (Vpara, Vperp) grid for given rho region --- ####
+    # Units [s^2/m^5]
+
+    fig2 = plt.figure(figsize=(16,10))
+    nrows = int(np.ceil((df['rhop']['t_grid']['size']+1)/3))
+    ncols = 3
+    gs = gridspec.GridSpec(nrows, ncols, figure=fig2)
+
+    # Plot initial distribution
+    ax = fig2.add_subplot(gs[0,0])
+    ax.set_ylabel(r'$v_{\perp}$ [$m/s$]')
+    if idf is not None:
+        vpaGrid_1d = idf['rhop']['Vpa_grid']['vals']
+        vpeGrid_1d = idf['rhop']['Vpe_grid']['vals']
+        vpeGrid_2d, vpaGrid_2d = np.meshgrid(vpeGrid_1d, vpaGrid_1d) # dim(nvpara, nvperp)
+
+        tmp = np.log10(idf['rhop'][0]['VpaVpe_dist']['vals']) # dim(nvpara, nvperp)
+        tmp[np.isinf(tmp)] = np.nan
+
+        pcm = ax.pcolormesh(
+            vpaGrid_2d,
+            vpeGrid_2d,
+            tmp
+            )
+        cbar = plt.colorbar(pcm, ax=ax)
+        pcm.set_clim(-2,6.5)
+
+        ax.set_title('init')
+        #ax.set_yscale('log')
+        #ax.set_xscale('log')
+        ax.set_ylim(0,1.5e4)
+        ax.set_xlim(-1.5e5, 1.5e5)
+        ax.yaxis.set_major_formatter(formatter)
+        ax.xaxis.set_major_formatter(formatter)
+
+        if gfile is not None:
+            ax.plot(
+                np.r_[0, 1.5e4/np.tan(thetaC)],
+                np.r_[0,1.5e4],
+                'k--'
+                )
+            ax.plot(
+                np.r_[0, -1.5e4/np.tan(thetaC)],
+                np.r_[0,1.5e4],
+                'k--'
+                )
+
+
     # Init
-    data = dcond[key]
+    key = 0
+    vpaGrid_1d = df['rhop']['Vpa_grid']['vals']
+    vpeGrid_1d = df['rhop']['Vpe_grid']['vals']
+    vpeGrid_2d, vpaGrid_2d = np.meshgrid(vpeGrid_1d, vpaGrid_1d) # dim(nvpara, nvperp)
+
+    # Loop over rows
+    for rr in np.arange(nrows):
+        # Loop over columns
+        for cc in np.arange(ncols):
+            if rr == 0 and cc == 0:
+                continue
+            if key == df['rhop']['t_grid']['size']:
+                continue
+            ax = fig2.add_subplot(gs[rr,cc])
+
+            tmp = np.log10(df['rhop'][0]['VpaVpe_dist']['vals']) # dim(nvpara, nvperp)
+            tmp[np.isinf(tmp)] = np.nan
+
+            pcm = ax.pcolormesh(
+                vpaGrid_2d,
+                vpeGrid_2d,
+                tmp
+                )
+            cbar = plt.colorbar(pcm, ax=ax)
+            pcm.set_clim(-2,6.5)
+            ax.grid('on')
+            ax.yaxis.set_major_formatter(formatter)
+            ax.xaxis.set_major_formatter(formatter)
+
+            ax.set_title(r'$t_{RF,on}$ =%0.2d - %0.2d ms'%(
+                df['rhop']['t_grid']['vals'][key], 
+                df['rhop']['t_grid']['vals'][key+1]
+                ))
+            #ax.set_yscale('log')
+            #ax.set_xscale('log')
+            ax.set_ylim(0,1.5e4)
+            ax.set_xlim(-1.5e5, 1.5e5)
+
+            if rr == nrows -1:
+                ax.set_xlabel(r'$v_{||}$ [$m/s$]')
+            if cc == ncols -1:
+                cbar.set_label(r'$log_{10}(f_{Ar16+})$ [$log_{10}(s^2/m^5)$]')
+            if cc == 0:
+                ax.set_ylabel(r'$v_{\perp}$ [$m/s$]')
+
+            if gfile is not None:
+                ax.plot(
+                    np.r_[0, 1.5e4/np.tan(thetaC)],
+                    np.r_[0,1.5e4],
+                    'k--'
+                    )
+                ax.plot(
+                    np.r_[0, -1.5e4/np.tan(thetaC)],
+                    np.r_[0,1.5e4],
+                    'k--'
+                    )
+
+            # Increase counter
+            key +=1
+
+    fig2.suptitle(
+        r'$\rho_p$=[%0.2f,%0.2f]'%(
+                rhop_min, rhop_max
+            )
+        )   
+
+
+    # Output
+    return df
+
 
 # Plots (pitch, E) distribution
 def _plot_rzDist(
@@ -57,6 +288,8 @@ def _plot_rzDist(
     rhop_min = 0,
     rhop_max = 1,
     # Plot controls
+    plt_all = True,
+    plt_whole = True,
     plt_t = -1,
     # Extra
     gfile = None,
@@ -85,6 +318,7 @@ def _plot_rzDist(
         if idata is not None:
             idf = _process_dist(
                 ddata=idata,
+                key = 'rzDist',
                 rhop_min = rhop_min,
                 rhop_max = rhop_max
                 )
@@ -92,9 +326,13 @@ def _plot_rzDist(
     if df is None:
         df = _process_dist(
             ddata = ddata,
+            key = 'rzDist',
             rhop_min = rhop_min,
             rhop_max = rhop_max,
             )
+
+    if not plt_all:
+        return df
 
     #### --- PLot df/dE vs. E for whoel plasma volume --- ####
     # Units [1/m3/eV]
@@ -103,12 +341,13 @@ def _plot_rzDist(
     fig1, ax1  = plt.subplots()
 
     if idf is not None:
-        ax1.plot(
-            idf['whole']['E_grid']['vals'],
-            idf['whole'][0]['E_dist']['vals'],
-            '*-',
-            label= r'init, $\rho_p$=[0,1]'
-            )
+        if plt_whole:
+            ax1.plot(
+                idf['whole']['E_grid']['vals'],
+                idf['whole'][0]['E_dist']['vals'],
+                '*-',
+                label= r'init, $\rho_p$=[0,1]'
+                )
         ax1.plot(
             idf['rhop']['E_grid']['vals'],
             idf['rhop'][0]['E_dist']['vals'],
@@ -119,24 +358,28 @@ def _plot_rzDist(
             )
 
     for itime in np.arange(df['rhop']['t_grid']['size']):
-        ax1.plot(
-            df['whole']['E_grid']['vals'],
-            df['whole'][itime]['E_dist']['vals'],
-            '*-',
-            label = r'$\rho_p$=[0,1]; $t_{RF,on}$ =%0.2d - %0.2d ms'%(
+        label = r'$t_{RF,on}$ =%0.2d - %0.2d ms'%(
                 df['whole']['t_grid']['vals'][itime], 
                 df['whole']['t_grid']['vals'][itime+1]
                 )
-            )
+
+        if plt_whole:
+            ax1.plot(
+                df['whole']['E_grid']['vals'],
+                df['whole'][itime]['E_dist']['vals'],
+                '*-',
+                label = r'$\rho_p$=[0,1]; '+label
+                )
+
+            label = r'$\rho_p$=[%0.2f,%0.2f]; '%(rhop_min, rhop_max) + label
+        else:
+            ax1.set_title(r'$\rho_p$=[%0.2f,%0.2f]; '%(rhop_min, rhop_max))
+
         ax1.plot(
             df['rhop']['E_grid']['vals'],
             df['rhop'][itime]['E_dist']['vals'],
             '*-',
-            label = r'$\rho_p$=[%0.2f,%0.2f]; $t_{RF,on}$ =%0.2d - %0.2d ms'%(
-                rhop_min, rhop_max,
-                df['rhop']['t_grid']['vals'][itime], 
-                df['rhop']['t_grid']['vals'][itime+1]
-                )
+            label = label
             )
         
 
@@ -325,6 +568,7 @@ def _plot_rhoDist(
 # Processes (R,Z) distribution data
 def _process_dist(
     ddata = None,
+    key = None,
     rhop_min = None,
     rhop_max = None,
     ):
@@ -332,15 +576,33 @@ def _process_dist(
     print(rhop_max)
 
     # Init
-    rzD = ddata['rzDist']
+    rzD = ddata[key]
     df = {}
     df['whole'] = {} # Sum over whole plasma volume
     df['rhop'] = {} # Sum over given rho interval
 
+    if key == 'rzDist':
+        key_2d = 'pitchE_dist'
+        units_2d = r'$1/m^3/eV$'
+        key_1d = 'E_dist'
+        units_1d = units_2d
+        scalef = cnt.e
+
+    elif key == 'rzVDist':
+        key_2d = 'VpaVpe_dist'
+        units_2d = r'$s^2/m^5$'
+        key_1d = 'Vpe_dist'
+        units_1d = r'$s/m^4$'
+        scalef = 1
+
     # Total distribution data
     df['tot'] = {}
-    df['tot']['vals'] = rzD['dist']['vals'] *cnt.e # dim(nR, nZ, npitch, nE, nt), [1/m3/eV]
-    df['tot']['units'] = r'$1/m^3/eV$'
+    df['tot']['vals'] = rzD['dist']['vals'] *scalef # dim(nR, nZ, npitch, nE, nt), [1/m3/eV]
+    df['tot']['units'] = units_2d
+
+    # If we need time-averaging
+    if rzD['cents']['dim5']['size'] > 1:
+        df['tot']['vals'] /= rzD['cents']['dim5']['dbin']
 
     # Finds rhop values of each data point
     RR_bf_1d = ddata['bfield']['RR']
@@ -383,16 +645,16 @@ def _process_dist(
 
         # Integrates 4D dist over 
         # ... whole plasma volume
-        df['whole'][itime]['pitchE_dist'] = {}
-        df['whole'][itime]['pitchE_dist']['units'] = r'$1/m^3/eV$'
-        df['whole'][itime]['pitchE_dist']['vals'] = np.zeros((
+        df['whole'][itime][key_2d] = {}
+        df['whole'][itime][key_2d]['units'] = units_2d
+        df['whole'][itime][key_2d]['vals'] = np.zeros((
             rzD['cents']['dim3']['size'], rzD['cents']['dim4']['size']
             )) # dim(npitch, nE); [1/m3/eV]
 
         # ... rho interval
-        df['rhop'][itime]['pitchE_dist'] = {}
-        df['rhop'][itime]['pitchE_dist']['units'] = r'$1/m^3/eV$'
-        df['rhop'][itime]['pitchE_dist']['vals'] = np.zeros((
+        df['rhop'][itime][key_2d] = {}
+        df['rhop'][itime][key_2d]['units'] = units_2d
+        df['rhop'][itime][key_2d]['vals'] = np.zeros((
             rzD['cents']['dim3']['size'], rzD['cents']['dim4']['size']
             )) # dim(npitch, nE); [1/m3/eV]
 
@@ -417,38 +679,37 @@ def _process_dist(
                 vol_tot += voxel
 
                 # Intergrates over plasma volume
-                df['whole'][itime]['pitchE_dist']['vals'] += (
+                df['whole'][itime][key_2d]['vals'] += (
                     df['tot']['vals'][rr,zz,:,:,itime]*voxel
                     ) # [1/eV]
 
                 # If volume is in rhop interval
                 if rhop_min <= rhop_vals[rr,zz] <= rhop_max:
                     vol_rhop += voxel
-                    df['rhop'][itime]['pitchE_dist']['vals'] += (
+                    df['rhop'][itime][key_2d]['vals'] += (
                         df['tot']['vals'][rr,zz,:,:,itime]*voxel
                         ) # [1/eV]
 
                 
 
         # Averages over volume
-        df['whole'][itime]['pitchE_dist']['vals'] /= vol_tot
-        df['rhop'][itime]['pitchE_dist']['vals'] /= vol_rhop
-        df['whole'][itime]['pitchE_dist']['units'] = df['rhop'][itime]['pitchE_dist']['units'] = df['tot']['units']
+        df['whole'][itime][key_2d]['vals'] /= vol_tot
+        df['rhop'][itime][key_2d]['vals'] /= vol_rhop
+        df['whole'][itime][key_2d]['units'] = df['rhop'][itime][key_2d]['units'] = df['tot']['units']
         
-
         # 4D dist averaged over whole plasma volume and integrated over pitch
-        df['whole'][itime]['E_dist'] = {}
-        df['whole'][itime]['E_dist']['vals'] = np.sum(
-            df['whole'][itime]['pitchE_dist']['vals'],
+        df['whole'][itime][key_1d] = {}
+        df['whole'][itime][key_1d]['vals'] = np.sum(
+            df['whole'][itime][key_2d]['vals'],
             axis = 0
             )*rzD['edges']['dim3']['dbin'] # dim(nE); [1/m3/eV]
 
-        df['rhop'][itime]['E_dist'] = {}
-        df['rhop'][itime]['E_dist']['vals'] = np.sum(
-            df['rhop'][itime]['pitchE_dist']['vals'],
+        df['rhop'][itime][key_1d] = {}
+        df['rhop'][itime][key_1d]['vals'] = np.sum(
+            df['rhop'][itime][key_2d]['vals'],
             axis = 0
             )*rzD['edges']['dim3']['dbin'] # dim(nE); [1/m3/eV]
-        df['whole'][itime]['E_dist']['units'] = df['rhop'][itime]['E_dist']['units'] = df['tot']['units']
+        df['whole'][itime][key_1d]['units'] = df['rhop'][itime][key_1d]['units'] = units_1d
 
         # Store rhop grid
         df['rhop']['grid'] = {}
@@ -456,17 +717,31 @@ def _process_dist(
         df['rhop']['grid']['ZZ'] = ZZ_rz_2d
         df['rhop']['grid']['rhop'] = rhop_vals
 
-        # Store energy grid
-        df['whole']['E_grid'] = {}
-        df['rhop']['E_grid'] = {}
-        df['whole']['E_grid']['vals'] = df['rhop']['E_grid']['vals'] = rzD['cents']['dim4']['vals']/cnt.e/1e3 # dim(nE,), [keV]
-        df['whole']['E_grid']['units'] = df['rhop']['E_grid']['units'] = 'keV'
 
-        # Store pitch grid
-        df['whole']['pitch_grid'] = {}
-        df['rhop']['pitch_grid'] = {}
-        df['whole']['pitch_grid']['vals'] = df['rhop']['pitch_grid']['vals'] = rzD['cents']['dim3']['vals'] # dim(npitch,), []
-        df['whole']['pitch_grid']['units'] = df['rhop']['pitch_grid']['units'] = 'v_{||}/v'
+        if key == 'rzDist':
+            # Store energy grid
+            df['whole']['E_grid'] = {}
+            df['rhop']['E_grid'] = {}
+            df['whole']['E_grid']['vals'] = df['rhop']['E_grid']['vals'] = rzD['cents']['dim4']['vals']/cnt.e/1e3 # dim(nE,), [keV]
+            df['whole']['E_grid']['units'] = df['rhop']['E_grid']['units'] = 'keV'
+
+            # Store pitch grid
+            df['whole']['pitch_grid'] = {}
+            df['rhop']['pitch_grid'] = {}
+            df['whole']['pitch_grid']['vals'] = df['rhop']['pitch_grid']['vals'] = rzD['cents']['dim3']['vals'] # dim(npitch,), []
+            df['whole']['pitch_grid']['units'] = df['rhop']['pitch_grid']['units'] = 'v_{||}/v'
+        elif key == 'rzVDist':
+            # Store parallel energy grid
+            df['whole']['Vpa_grid'] = {}
+            df['rhop']['Vpa_grid'] = {}
+            df['whole']['Vpa_grid']['vals'] = df['rhop']['Vpa_grid']['vals'] = rzD['cents']['dim3']['vals'] # dim(nVpa,), [m/s]
+            df['whole']['Vpa_grid']['units'] = df['rhop']['Vpa_grid']['units'] = 'm/s'
+
+            # Store perpendicular energy grid
+            df['whole']['Vpe_grid'] = {}
+            df['rhop']['Vpe_grid'] = {}
+            df['whole']['Vpe_grid']['vals'] = df['rhop']['Vpe_grid']['vals'] = np.flipud(rzD['cents']['dim4']['vals']) # dim(nVpe,), [m/s]
+            df['whole']['Vpe_grid']['units'] = df['rhop']['Vpe_grid']['units'] = 'm/s'
 
         # Store time grid
         df['whole']['t_grid'] = {}

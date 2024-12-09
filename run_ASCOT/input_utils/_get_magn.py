@@ -267,7 +267,7 @@ def _write_bkg_2d(
     # Writes Br block
     _write_block(
         f=f,
-        data=ddata['AuxQuantities']['Br']*-1 # -1 to account for helicity convention
+        data=ddata['AuxQuantities']['Br']#*-1 # -1 to account for helicity convention
         )
 
     # Writes Bphi block
@@ -279,7 +279,7 @@ def _write_bkg_2d(
     # Writes Bz block
     _write_block(
         f=f,
-        data=ddata['AuxQuantities']['Bz']*-1 # -1 to account for helicity convention
+        data=ddata['AuxQuantities']['Bz']#*-1 # -1 to account for helicity convention
         )
 
     # Closes file

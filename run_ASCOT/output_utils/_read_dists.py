@@ -46,10 +46,16 @@ def _read_dist(
             print('NO DISTRIBUTION DATA')
             return dout
 
-    # (R,Z) x(mu, E) distribution
+    # (R,Z) x(pitch, E) distribution
     if 'rzPitchEdist' in dst.keys():
         dout['rzDist'] = _read_rzDist(
             rzPE = dst['rzPitchEdist']
+            )
+
+    # (R,Z) x(vpara, vperp) distribution
+    if 'rzVDist' in dst.keys():
+        dout['rzVDist'] = _read_rzDist(
+            rzPE = dst['rzVDist']
             )
 
     # rho distributions
