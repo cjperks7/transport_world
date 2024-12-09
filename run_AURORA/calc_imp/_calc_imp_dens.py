@@ -52,6 +52,12 @@ def get_ion_bal(
         plot=plot,
         superstages = superstages,
         )
+    if plot:
+        plt.ylabel('Abundance [frac]')
+        if files is None:
+            plt.title(sp+ '; OpenADAS')
+        else:
+            plt.title(sp+'; '+files['acd'].split('/')[-1]+'; '+files['scd'].split('/')[-1])
 
     # Output, dim(nrho, ncharge)
     return fz
@@ -118,6 +124,8 @@ def calc_imp_dens(
     dmodel = None,
     plt_all = None,
     plt_cs = None,
+    # Controls
+    nz_init = None, # dim(fm_rhop, Z); [1/cm3]; initial condition
     # Extra
     scaleT = 1,
     scalen = 1,
@@ -165,7 +173,12 @@ def calc_imp_dens(
 
     # Defining impurity edge source flux
     nml['source_type'] = dmodel['AURORA']['source']['type']
-    nml['source_rate'] = dmodel['AURORA']['source']['rate'] # [particles/s]
+    if nml['source_type'] == 'const':
+        nml['source_rate'] = dmodel['AURORA']['source']['rate'] # [particles/s]
+    elif nml['source_type'] == 'step':
+        nml['src_step_times'] = dmodel['AURORA']['source']['times'] # [s]
+        nml['src_step_rates'] = dmodel['AURORA']['source']['rate'] # [particles/s]
+        nml['step_source_duration'] = dmodel['AURORA']['source']['duration'] # [s]
 
     # Limiter surface (R,Z) contour
     zlim = geqdsk['fluxsurfaces']['info']['zlim']
@@ -238,7 +251,10 @@ def calc_imp_dens(
     times_DV = np.array([0])
 
     # Impurity density profile initial condition
-    nz_init  = np.zeros((asim.rvol_grid.size, asim.Z_imp+1)) # dim(fm_rhop, Z); [1/cm3]
+    print(asim.rvol_grid.size)
+    print(asim.Z_imp+1)
+    if nz_init is None:
+        nz_init  = np.zeros((asim.rvol_grid.size, asim.Z_imp+1)) # dim(fm_rhop, Z); [1/cm3]
 
     # Obtains D, V profiles given desired modeling
     if 'FACIT' in dmodel['options']:
