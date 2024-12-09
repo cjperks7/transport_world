@@ -1,0 +1,7 @@
+1. Logging onto the PPPL UNIX cluster
+
+1.1 Connect to Global Protect VPN
+account: cperks2@pppl.gov
+
+1.2 ssh into sunfire
+ssh cperks2@portal.pppl.gov
