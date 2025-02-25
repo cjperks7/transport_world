@@ -38,9 +38,12 @@ def get_fits(
     shot = None,
     t0 = None,
     dt = None,
+    tht = 0,
     plt_all = None,
     plt_coor='rhot',
     source = 'quickfit',
+    rescale_ne = 1,
+    rescale_te = 1,
     ):
     dout['paths']['kin'] = path_kin
     dout['t0_s'] = t0
@@ -62,6 +65,14 @@ def get_fits(
             path_kin=path_kin,
             )
 
+    # Rescaling if requested
+    dout['Te_keV'] *= rescale_te
+    dout['Te_keV_err'] *= rescale_te
+    dout['Ti_keV'] *= rescale_te
+    dout['Ti_keV_err'] *= rescale_te
+    dout['ne_19m3'] *= rescale_ne
+    dout['ne_19m3_err'] *= rescale_ne
+
     if plt_all:
         _plot(
             dout = dout,
@@ -71,6 +82,7 @@ def get_fits(
             Ti = None,
             t0=t0,
             dt=dt,
+            tht = tht,
             plt_coor=plt_coor,
             )
 
@@ -163,8 +175,8 @@ def _read_quickfit(
     Ti = Ti_t[t_ind].T # dim(rho,t); [keV]
 
     # Removes negative values from fits
-    #Te[Te<0.2] = 0.2
-    #Ti[Ti<0.2] = 0.2
+    #Te[Te<0.1] = 0.1
+    #Ti[Ti<0.1] = 0.1
     #ne[ne<0.5] = 0.5
 
     # Interpolates onto rho = 0->1
@@ -225,7 +237,7 @@ def _read_profiletools(
 
         # Error checks
         if prof_key not in ff.variables.keys():
-            others = [', CTS', ', HIREXSR, He-like Ar']
+            others = [', CTS', ', HIREXSR, He-like Ar', ', FRCECE (s)']
             for oth in others:
                 if prof_key + oth in ff.variables.keys():
                     prof_key += oth
@@ -254,6 +266,10 @@ def _read_profiletools(
             fill_value=(float(ff.variables['err_'+prof_key][0])*scale, 0)
             )(rad_val)
 
+        # Error check
+        if prof == 'Te_keV':
+            dout[prof][dout[prof]<0.1] = 0.1
+
 
     # Output
     return dout
@@ -280,17 +296,27 @@ def conv_rad(
         xvar = dout['rhop']
     elif xout == 'rmin_m':
         xvar = dout['rmin_m']
+    elif xout == 'r/a':
+        xvar = dout['rmin_m']/dout['rmin_m'][-1]
 
     # rmin -> output x-variable
     if 'r_m' in diag.keys():
         psin_tmp = np.zeros(diag['r_m'].shape)
 
-        for ii in np.arange(diag['r_m'].shape[1]):
-            psin_tmp[:,ii] = np.sqrt(edr.rmid2psinorm(
-                list(diag['r_m'][:,ii]),
-                diag['t_s'][ii],
-                sqrt = False,
-                ))**2
+        if np.ndim(diag['r_m']) == 2:
+            for ii in np.arange(diag['r_m'].shape[1]):
+                psin_tmp[:,ii] = np.sqrt(edr.rmid2psinorm(
+                    list(diag['r_m'][:,ii]),
+                    diag['t_s'][ii],
+                    sqrt = False,
+                    ))**2
+        elif np.ndim(diag['r_m']) == 1:
+            ii = np.argmin(abs(dout['t0_s'] - diag['t_s']))
+            psin_tmp = np.sqrt(edr.rmid2psinorm(
+                    list(diag['r_m']),
+                    diag['t_s'][ii],
+                    sqrt = False,
+                    ))**2
 
     # psin -> output x-variable
     elif 'psin' in diag.keys():
@@ -314,6 +340,7 @@ def _plot(
     Ti=None,
     t0=None,
     dt=None,
+    tht = 0,
     plt_coor = 'rhot',
     plt_q = True,
     ):
@@ -328,6 +355,10 @@ def _plot(
     elif plt_coor == 'rmin_m':
         xvar = dout['rmin_m']
         xlab = r'$r$ [$cm$]'
+    elif plt_coor == 'r/a':
+        xvar = dout['rmin_m']/dout['rmin_m'][-1]
+        xlab = r'$r/a$'
+
 
     fig, ax = plt.subplots(1,3)
 
@@ -369,7 +400,7 @@ def _plot(
 
     if shot is not None:
         # Obtains experimental kinetic profiles
-        dkin = rTok.profs_cmod(shot=shot)
+        dkin = rTok.profs_cmod(shot=shot, tht=tht)
 
         # Gets eqdsk
         edr = eqtools.EqdskReader(
@@ -401,8 +432,8 @@ def _plot(
                     continue
                 elif np.isnan(dkin[prof][diag][vals]).all():
                     continue
-                elif diag in ['GPC', 'GPC2', 'FRC']:
-                    continue
+                #elif diag in ['GPC', 'GPC2', 'FRC']:
+                #    continue
 
                 # Finds time range
                 t_ind = np.where(
@@ -487,21 +518,21 @@ def _plot(
     ax[0].set_xlabel(xlab)
     ax[0].set_ylabel(r'$n_e$ [1e19 $m^{-3}$]')
     ax[0].grid('on')
-    ax[0].set_ylim(0,20)
+    ax[0].set_ylim(0,40)
     leg0 = ax[0].legend()
     leg0.set_draggable('on')
 
     ax[1].set_xlabel(xlab)
     ax[1].set_ylabel(r'$T_e$ [$keV$]')
     ax[1].grid('on')
-    ax[1].set_ylim(0,3)
+    ax[1].set_ylim(0,4.5)
     leg1 = ax[1].legend()
     leg1.set_draggable('on')
 
     ax[2].set_xlabel(xlab)
     ax[2].set_ylabel(r'$T_i$ [$keV$]')
     ax[2].grid('on')
-    ax[2].set_ylim(0,3)
+    ax[2].set_ylim(0,3.5)
     leg2 = ax[2].legend()
     leg2.set_draggable('on')
 
