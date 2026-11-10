@@ -17,6 +17,7 @@ from scipy.interpolate import interp1d
 __all__ = [
     'get_line_spectra',
     'get_PEC',
+    'get_PEC_all',
     'get_sticks'
     ]
 
@@ -26,6 +27,84 @@ __all__ = [
 #
 #########################################################
 
+'''
+
+import os
+from transport_world.run_AURORA import calc_spectra as csp
+
+#Te_eV = 3.0e3
+#Te_eV = 5e2
+Te_eV = 0.4e3
+ne_cm3 = 1e14
+
+#Te_eV = 9e3
+#ne_cm3 = 1e14
+
+#sp = 'W'
+#Znuc = 74
+sp = 'Mo'
+Znuc = 42
+#sp = 'Ag'
+#Znuc = 47
+#sp = 'Se'
+#Znuc = 34
+#sp = 'Ge'
+#Znuc = 32
+#sp = 'Ni'
+#Znuc = 28
+#sp = 'Ar'
+#Znuc = 18
+#sp = 'Xe'
+#Znuc = 54
+#sp = 'Kr'
+#Znuc = 36
+
+#fol = '/home/cjperks/tofu_sparc/atomic_data/FAC_PEC_files/W/XRSLR_3D'
+#fol = '/home/cjperks/tofu_sparc/atomic_data/FAC_PEC_files/W/XRSHRXe'
+#fol = '/home/cjperks/work/2008_SPARCxray/Alt_atom_data/XRS_LR'
+#fol = '/home/cjperks/work/2008_SPARCxray/Alt_atom_data/XRS_HR'
+#fol = '/home/cjperks/work/2008_SPARCxray/Alt_atom_data/LoWEUS/%s'%(sp)
+fol = '/home/cjperks/work/2008_SPARCxray/Alt_atom_data/XEUS/%s'%(sp)
+#fol = '/home/cjperks/work/2008_SPARCxray/Alt_atom_data/HIREXSR'
+#fol = '/home/cjperks/work/2008_SPARCxray/Alt_atom_data/EBIT'
+#fol = '/home/cjperks/work/2008_SPARCxray/Alt_atom_data/WEST/%s'%(sp)
+#fol = '/home/cjperks/tofu_sparc/atomic_data/ADAS_PEC_files/Tungsten'
+#fol = '/home/cjperks/work/2008_SPARCxray/Alt_atom_data/EBIT_Lshell'
+#fol = '/home/cjperks/work/papers/EBIT26/issues/neonlike/Se_nmax10'
+#fol = '/home/cjperks/work/2008_SPARCxray/Alt_atom_data/all_Lshell'
+
+files = [
+    #os.path.join(fol, 'FAC_W%02i.dat'%(ii))
+    #for ii in range(6,10)#,19)
+    #os.path.join(fol, 'FAC_Mo%02i.dat'%(ii))
+    #for ii in range(11,13)
+    #os.path.join(fol, 'FAC_Ar%02i.dat'%(ii))
+    #for ii in range(4,7)
+    #os.path.join(fol, 'FAC_Ar%02i.dat'%(ii))
+    #for ii in range(1,4)
+    #os.path.join(fol, 'FAC_W%02i.dat'%(ii))
+    #for ii in range(13,15)
+    os.path.join(fol, 'FAC_%s%02i.dat'%(sp,ii))
+    #os.path.join(fol, 'pec40#%s_ic#%s%02i.dat'%(sp.lower(),sp.lower(),Znuc-ii))
+    #for ii in range(1,7)
+    #for ii in range(11,13)
+    #for ii in range(29,31)
+    for ii in range(20,24)
+    #for ii in range(13,14+1)
+    #for ii in range(10,18+1)
+    #for ii in range(10,10+1)
+    #for ii in range(1,3+1)
+    #for ii in range(1,3+1)
+    #for ii in range(10,11)
+    #for ii in range(2,3+1)
+    #for ii in range(6,12+1)
+    #for ii in [3,7]
+    ]
+
+csp.get_sticks(files=files, Te_eV=Te_eV, ne_cm3=ne_cm3)
+
+'''
+
 # Get PEC sticks (because I always forget)
 def get_sticks(
     files=None, # string or list of strings
@@ -34,6 +113,75 @@ def get_sticks(
     ):
 
     aurora.adf15_line_identification(files, Te_eV=Te_eV, ne_cm3=ne_cm3)
+
+# Get PEC curve of all PECs in dataset
+def get_PEC_all(
+    # Ion data
+    sp = None,
+    cs = None,
+    path_PEC = None,
+    # Plasma data
+    Te_eV = None, # [eV], dim(nrho,), electron temperature
+    ne_cm3 = None, # [cm^-3], dim(nrho,), electron density
+    # Controls
+    wvl_lim = None,
+    ):
+
+    # Obtains file location of PECs
+    if path_PEC is None:
+        path_PEC = _get_PEC_loc(
+            ion=sp,
+            cs=cs,
+            )
+
+    # Reads ADF15
+    trs = aurora.read_adf15(path_PEC)
+
+    # Finds every unique wavelength
+    wvls = np.unique(trs['lambda [A]'])
+    if wvl_lim is not None:
+        wvls = wvls[(wvls >= wvl_lim[0]) & (wvls <= wvl_lim[1])]
+
+    # Init
+    out = np.zeros((
+        len(wvls), len(Te_eV), 3
+        )) # dim(ntrans, nrho, ion/exc/rec)
+
+    # Loop over PECs
+    for ii, wvl in enumerate(wvls):
+        # Finds all transitions at this wavelength
+        sub_trs = trs.loc[trs['lambda [A]'] == wvl]
+
+        for ll in sub_trs['isel']:
+            if sub_trs.loc[ll - 1]['type'] in ['ion', 'ioniz', 'ionis']:
+                xx = 0
+            elif sub_trs.loc[ll - 1]['type'] in ['exc', 'excit']:
+                xx = 1
+            elif sub_trs.loc[ll - 1]['type'] in ['rec', 'recom', 'drsat']:
+                xx = 2
+
+            out[ii,:,xx] += 10**sub_trs.loc[ll - 1]['log10 PEC fun'].ev(np.log10(ne_cm3), np.log10(Te_eV))
+
+    # Output, [cm^3/s], dim(ntrans, nrhop, ion/exc/rec)
+    return out, wvls
+
+'''
+
+import sys, os
+from transport_world.run_AURORA import calc_spectra as csp
+
+# Plasma
+Te_long = np.logspace(
+    np.log10(1e-1),
+    np.log10(4e0),
+    51
+    )*1e3 # [eV]
+ne_long = 1e14*np.ones_like(Te_long) # [cm^-3]
+
+# File management
+fol = '/home/cjperks/work/2008_SPARCxray/Alt_atom_data/HIREXSR'
+
+'''
 
 # Get PEC curve
 def get_PEC(
@@ -80,7 +228,7 @@ def get_PEC(
 
         out[:,xx] += 10**trs['log10 PEC fun'][ind].ev(np.log10(ne_cm3), np.log10(Te_eV))
 
-    # Output
+    # Output, [cm^3/s], dim(nrhop, ion/exc/rec)
     return out
 
 # Full spectrum forward modeling
